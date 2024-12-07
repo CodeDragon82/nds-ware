@@ -31,6 +31,14 @@ class Nds(KaitaiStruct):
         self.arm7 = Nds.CodeSection(self.header.arm7, self._io, self, self._root)
         self.arm9i = Nds.CodeSection(self.extended_header.arm9i, self._io, self, self._root)
         self.arm7i = Nds.CodeSection(self.extended_header.arm7i, self._io, self, self._root)
+        self.arm9_overlays = []
+        for i in range(len(self.arm9_overlay_table.entries)):
+            self.arm9_overlays.append(Nds.Overlay(self.arm9_overlay_table.entries[i], self._io, self, self._root))
+
+        self.arm7_overlays = []
+        for i in range(len(self.arm7_overlay_table.entries)):
+            self.arm7_overlays.append(Nds.Overlay(self.arm7_overlay_table.entries[i], self._io, self, self._root))
+
 
     class CodeSection(KaitaiStruct):
         def __init__(self, info, _io, _parent=None, _root=None):
@@ -94,6 +102,29 @@ class Nds(KaitaiStruct):
             self.reserved = self._io.read_u4le()
 
 
+    class Overlay(KaitaiStruct):
+        def __init__(self, info, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self.info = info
+            self._read()
+
+        def _read(self):
+            pass
+
+        @property
+        def data(self):
+            if hasattr(self, '_m_data'):
+                return self._m_data
+
+            _pos = self._io.pos()
+            self._io.seek(self.info.start_address)
+            self._m_data = self._io.read_bytes(self.info.length)
+            self._io.seek(_pos)
+            return getattr(self, '_m_data', None)
+
+
     class DirectoryEntry(KaitaiStruct):
         def __init__(self, id, _io, _parent=None, _root=None):
             self._io = _io
@@ -118,22 +149,6 @@ class Nds(KaitaiStruct):
         def _read(self):
             self.length = self._io.read_u1()
             self.value = (self._io.read_bytes(self.length)).decode(u"ascii")
-
-
-    class Files(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
-            self._io = _io
-            self._parent = _parent
-            self._root = _root if _root else self
-            self._read()
-
-        def _read(self):
-            self.files = []
-            i = 0
-            while not self._io.is_eof():
-                self.files.append(Nds.FileEntry(self._io, self, self._root))
-                i += 1
-
 
 
     class SectionInfo(KaitaiStruct):
@@ -169,8 +184,10 @@ class Nds(KaitaiStruct):
 
         def _read(self):
             self.entries = []
-            for i in range(236):
+            i = 0
+            while not self._io.is_eof():
                 self.entries.append(Nds.OverlayEntry(self._io, self, self._root))
+                i += 1
 
 
 
@@ -271,6 +288,22 @@ class Nds(KaitaiStruct):
             return getattr(self, '_m_data', None)
 
 
+    class DirectoryContent(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.files = []
+            i = 0
+            while not self._io.is_eof():
+                self.files.append(Nds.FileEntry(self._io, self, self._root))
+                i += 1
+
+
+
     class FileEntry(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -322,7 +355,7 @@ class Nds(KaitaiStruct):
         def _read(self):
             self._raw_content = self._io.read_bytes_term(0, False, True, True)
             _io__raw_content = KaitaiStream(BytesIO(self._raw_content))
-            self.content = Nds.Files(_io__raw_content, self, self._root)
+            self.content = Nds.DirectoryContent(_io__raw_content, self, self._root)
 
 
     @property
@@ -351,5 +384,31 @@ class Nds(KaitaiStruct):
 
         self._io.seek(_pos)
         return getattr(self, '_m_file_allocation_table', None)
+
+    @property
+    def arm9_overlay_table(self):
+        if hasattr(self, '_m_arm9_overlay_table'):
+            return self._m_arm9_overlay_table
+
+        _pos = self._io.pos()
+        self._io.seek(self.header.arm9_overlay.offset)
+        self._raw__m_arm9_overlay_table = self._io.read_bytes(self.header.arm9_overlay.size)
+        _io__raw__m_arm9_overlay_table = KaitaiStream(BytesIO(self._raw__m_arm9_overlay_table))
+        self._m_arm9_overlay_table = Nds.OverlayTable(_io__raw__m_arm9_overlay_table, self, self._root)
+        self._io.seek(_pos)
+        return getattr(self, '_m_arm9_overlay_table', None)
+
+    @property
+    def arm7_overlay_table(self):
+        if hasattr(self, '_m_arm7_overlay_table'):
+            return self._m_arm7_overlay_table
+
+        _pos = self._io.pos()
+        self._io.seek(self.header.arm7_overlay.offset)
+        self._raw__m_arm7_overlay_table = self._io.read_bytes(self.header.arm7_overlay.size)
+        _io__raw__m_arm7_overlay_table = KaitaiStream(BytesIO(self._raw__m_arm7_overlay_table))
+        self._m_arm7_overlay_table = Nds.OverlayTable(_io__raw__m_arm7_overlay_table, self, self._root)
+        self._io.seek(_pos)
+        return getattr(self, '_m_arm7_overlay_table', None)
 
 

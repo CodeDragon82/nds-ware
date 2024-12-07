@@ -141,6 +141,7 @@ types:
         type: u4
   
   section_info:
+    -webide-representation: '{offset} {size:dec}B'
     seq:
       - id: offset
         type: u4
@@ -244,13 +245,14 @@ types:
       - id: value
         size: length
         type: str
-        
+  
+  ### Overlay Table ###      
+  
   overlay_table:
     seq:
       - id: entries
         type: overlay_entry
-        repeat: expr
-        repeat-expr: 236
+        repeat: eos
         
   overlay_entry:
     -webide-representation: 'index: {index:dec}'
@@ -271,9 +273,11 @@ types:
         type: u4
       - id: reserved
         type: u4
+        
+   ##### #####
   
   file:
-    -webide-representation: '{info} {data}'
+    -webide-representation: '{info}'
     params:
       - id: info
         type: fat_entry
@@ -281,6 +285,15 @@ types:
       data:
         pos: info.start_offset
         size: info.end_offset - info.start_offset
+        
+  overlay:
+    params:
+      - id: info
+        type: overlay_entry
+    instances:
+      data:
+        pos: info.start_address
+        size: info.length
 
 seq:
   - id: header
@@ -299,6 +312,14 @@ seq:
     type: code_section(extended_header.arm9i)
   - id: arm7i
     type: code_section(extended_header.arm7i)
+  - id: arm9_overlays
+    type: overlay(arm9_overlay_table.entries[_index])
+    repeat: expr
+    repeat-expr: arm9_overlay_table.entries.size
+  - id: arm7_overlays
+    type: overlay(arm7_overlay_table.entries[_index])
+    repeat: expr
+    repeat-expr: arm7_overlay_table.entries.size
   
 instances:
   file_name_table:
@@ -310,3 +331,11 @@ instances:
     type: fat_entry
     repeat: expr
     repeat-expr: header.fat_info.size / 8
+  arm9_overlay_table:
+    pos: header.arm9_overlay.offset
+    size: header.arm9_overlay.size
+    type: overlay_table
+  arm7_overlay_table:
+    pos: header.arm7_overlay.offset
+    size: header.arm7_overlay.size
+    type: overlay_table
