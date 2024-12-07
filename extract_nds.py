@@ -18,6 +18,18 @@ def extract_files(nds, output_dir):
         file_name = str(i)
         file_path = os.path.join(output_dir, file_name)
         open(file_path, "wb").write(file_data)
+        
+def extract_code(nds, output_dir):
+    code_files = [
+        ("arm7", nds.arm7),
+        ("arm7i", nds.arm7i),
+        ("arm9", nds.arm9),
+        ("arm9i", nds.arm9i)
+    ]
+    
+    for file_name, code in code_files:
+        file_path = os.path.join(output_dir, file_name)
+        open(file_path, "wb").write(code.data)
 
 def main():
     parser = setup_arguments()
@@ -32,6 +44,7 @@ def main():
     os.makedirs(files_dir, exist_ok=True)
     
     extract_files(nds, files_dir)
+    extract_code(nds, code_dir)
     
 if __name__ == "__main__":
     main()
