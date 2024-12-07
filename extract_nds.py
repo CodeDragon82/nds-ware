@@ -30,6 +30,18 @@ def extract_code(nds, output_dir):
     for file_name, code in code_files:
         file_path = os.path.join(output_dir, file_name)
         open(file_path, "wb").write(code.data)
+        
+    extract_overlays(nds.arm7_overlays, os.path.join(output_dir, "arm7_overlays"))
+    extract_overlays(nds.arm9_overlays, os.path.join(output_dir, "arm9_overlays"))
+        
+def extract_overlays(overlays, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    
+    for i in range(len(overlays)):
+        overlay_code = overlays[i].data
+        file_name = str(i)
+        file_path = os.path.join(output_dir, file_name)
+        open(file_path, "wb").write(overlay_code)
 
 def main():
     parser = setup_arguments()
