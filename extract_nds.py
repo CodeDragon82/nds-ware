@@ -4,6 +4,10 @@ import os
 
 CODE_FOLDER = "code"
 FILES_FOLDER = "files"
+FILE_EXTENSIONS = {
+    b"SDAT": ".sdat",
+    b"NARC": ".narc"
+}
 
 def setup_arguments():
     parser = argparse.ArgumentParser(description="Extracts data from key sections of the NDS ROM such as game code and files.")
@@ -15,7 +19,9 @@ def setup_arguments():
 def extract_files(nds, output_dir):
     for i in range(len(nds.files)):
         file_data = nds.files[i].data
-        file_name = str(i)
+        magic = file_data[0:4]
+        file_extension = FILE_EXTENSIONS[magic] if magic in FILE_EXTENSIONS else ""
+        file_name = str(i) + file_extension
         file_path = os.path.join(output_dir, file_name)
         open(file_path, "wb").write(file_data)
         
