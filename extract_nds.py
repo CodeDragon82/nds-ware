@@ -9,7 +9,6 @@ Extracts data from key sections of the NDS ROM such as game code and files.
 
 CODE_FOLDER = "code"
 FILES_FOLDER = "files"
-FILE_EXTENSIONS = {b"SDAT": ".sdat", b"NARC": ".narc"}
 
 file_index = 0
 
