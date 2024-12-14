@@ -9,6 +9,8 @@ FILE_EXTENSIONS = {
     b"NARC": ".narc"
 }
 
+file_index = 0
+
 def setup_arguments():
     parser = argparse.ArgumentParser(description="Extracts data from key sections of the NDS ROM such as game code and files.")
     parser.add_argument("nds_file")
@@ -16,14 +18,30 @@ def setup_arguments():
     
     return parser
 
+def extract_directory(nds, directory, output_dir):
+    global file_index
+    
+    for file in reversed(directory.content.files):
+        print(file.name)
+        if file.flag.is_directory:
+            new_output_dir = os.path.join(output_dir, file.name)
+            os.makedirs(new_output_dir, exist_ok=True)
+            
+            next_directory_index = file.directory_id & 0xFF
+            next_directory = nds.file_name_table.directories[next_directory_index]
+            extract_directory(nds, next_directory, new_output_dir)
+        else:
+            file_path = os.path.join(output_dir, file.name)
+            file_data = nds.files[file_index].data
+            open(file_path, "wb").write(file_data)
+            file_index += 1
+
 def extract_files(nds, output_dir):
-    for i in range(len(nds.files)):
-        file_data = nds.files[i].data
-        magic = file_data[0:4]
-        file_extension = FILE_EXTENSIONS[magic] if magic in FILE_EXTENSIONS else ""
-        file_name = str(i) + file_extension
-        file_path = os.path.join(output_dir, file_name)
-        open(file_path, "wb").write(file_data)
+    global file_index
+    file_index = 0
+    
+    root = nds.file_name_table.directories[0]
+    extract_directory(nds, root, output_dir)
         
 def extract_code(nds, output_dir):
     code_files = [
