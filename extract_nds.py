@@ -33,7 +33,6 @@ def extract_directory(
     global file_index
 
     for file in reversed(directory.content.files):
-        print(file.name)
         if file.flag.is_directory:
             new_output_dir = os.path.join(output_dir, file.name)
             os.makedirs(new_output_dir, exist_ok=True)
@@ -47,12 +46,12 @@ def extract_directory(
             file_path = os.path.join(output_dir, file.name)
             file_data = nds.files[file_index].data
             open(file_path, "wb").write(file_data)
-            file_index += 1
+            file_index -= 1
 
 
 def extract_files(nds: Nds, output_dir: str) -> None:
     global file_index
-    file_index = 0
+    file_index = len(nds.files) - 1
 
     root = nds.file_name_table.directories[0]
     extract_directory(nds, root, output_dir)
