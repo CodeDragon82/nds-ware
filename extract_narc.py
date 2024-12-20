@@ -1,38 +1,30 @@
 import os
-from argparse import ArgumentParser, Namespace
 
+import click
 from parsers.narc import Narc
 
 TOOL_DESCRIPTION = "Extracts files for a Nintendo Archive (NARC)."
 
 
-def parse_arguments() -> Namespace:
-    parser = ArgumentParser(description=TOOL_DESCRIPTION)
-    parser.add_argument(
-        "narc_file", type=str, help="File path to the NARC file to extract."
-    )
-    parser.add_argument(
-        "output_dir",
-        type=str,
-        help="Directory that files are extracted to.",
-    )
-
-    return parser.parse_args()
+@click.group()
+def cli() -> None:
+    """Extracts files for a Nintendo Archive (NARC)."""
 
 
-def main() -> None:
-    args = parse_arguments()
+@cli.command(help="Extract files from a Nintendo Archive.")
+@click.argument("narc_file")  # , help="File path to the NARC file to extract.")
+@click.argument(
+    "output_dir"
+)  # , help="Directory that files are extracted to.")
+def extract(narc_file: str, output_dir: str) -> None:
+    narc = Narc.from_file(narc_file)
 
-    narc = Narc.from_file(args.narc_file)
+    os.makedirs(output_dir, exist_ok=True)
 
-    os.makedirs(args.output_dir, exist_ok=True)
-
-    i = 0
-    for file in narc.file_section.files:
-        file_path = os.path.join(args.output_dir, str(i))
+    for i, file in enumerate(narc.file_section.files):
+        file_path = os.path.join(output_dir, str(i))
         open(file_path, "wb").write(file.data)
-        i += 1
 
 
 if __name__ == "__main__":
-    main()
+    cli()
