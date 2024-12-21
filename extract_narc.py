@@ -3,12 +3,20 @@ import os
 import click
 from parsers.narc import Narc
 
-TOOL_DESCRIPTION = "Extracts files for a Nintendo Archive (NARC)."
-
 
 @click.group()
 def cli() -> None:
-    """Extracts files for a Nintendo Archive (NARC)."""
+    """Extracts files from a Nintendo Archive (NARC)."""
+
+
+@cli.command(help="Count the number of files in a Nintendo Archive.")
+@click.argument("narc_file")
+def count(narc_file: str) -> None:
+    narc = Narc.from_file(narc_file)
+
+    file_count = len(narc.file_section.files)
+
+    print(f"{file_count} files")
 
 
 @cli.command(help="Extract files from a Nintendo Archive.")
