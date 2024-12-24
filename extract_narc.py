@@ -3,6 +3,8 @@ import os
 import click
 from parsers.narc import Narc
 
+file_index = 0
+
 
 @click.group()
 def cli() -> None:
@@ -14,9 +16,33 @@ def cli() -> None:
 def count(narc_file: str) -> None:
     narc = Narc.from_file(narc_file)
 
-    file_count = len(narc.file_section.files)
+    file_count = len(narc.file_section.data.files)
 
     print(f"{file_count} files")
+
+
+def extract_directory(
+    files: list[Narc.File],
+    fnt: Narc.Btnf,
+    directory: Narc.Directory,
+    output_dir: str,
+) -> None:
+    global file_index
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    for file in reversed(directory.content.files):
+        if file.flag.is_directory:
+            new_output_dir = os.path.join(output_dir, file.name)
+
+            next_directory_index = file.directory_id & 0xFF
+            next_directory = fnt.directories[next_directory_index]
+            extract_directory(files, fnt, next_directory, new_output_dir)
+        else:
+            file_path = os.path.join(output_dir, file.name)
+            file_data = files[file_index].data
+            open(file_path, "wb").write(file_data)
+            file_index -= 1
 
 
 @cli.command(help="Extract files from a Nintendo Archive.")
@@ -27,11 +53,13 @@ def count(narc_file: str) -> None:
 def extract(narc_file: str, output_dir: str) -> None:
     narc = Narc.from_file(narc_file)
 
-    os.makedirs(output_dir, exist_ok=True)
+    files = narc.file_section.data.files
+    fnt = narc.file_name_table.data
 
-    for i, file in enumerate(narc.file_section.files):
-        file_path = os.path.join(output_dir, str(i))
-        open(file_path, "wb").write(file.data)
+    global file_index
+    file_index = len(files) - 1
+
+    extract_directory(files, fnt, fnt.directories[0], output_dir)
 
 
 if __name__ == "__main__":
