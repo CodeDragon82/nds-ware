@@ -8,11 +8,11 @@ seq:
   - id: header
     type: generic_header
   - id: file_allocation_table
-    type: btaf
+    type: section
   - id: file_name_table
-    type: btnf
+    type: section
   - id: file_section
-    type: gmif
+    type: section
     
 types:
   generic_header:
@@ -27,14 +27,27 @@ types:
         type: u2
       - id: section_count
         type: u2
-  
-  # File Allocation Table 
-  btaf:
+        
+  section:
     seq:
       - id: magic
-        contents: "BTAF"
-      - id: section_size
+        type: str
+        size: 4
+      - id: size
         type: u4
+      - id: data
+        type:
+          switch-on: magic
+          cases:
+            '"BTAF"': btaf
+            '"BTNF"': btnf
+            '"GMIF"': gmif
+        size: size - 8
+  
+  ### File Allocation Table ###
+  
+  btaf:
+    seq:
       - id: file_count
         type: u4
       - id: entries
@@ -50,36 +63,96 @@ types:
       - id: end_offset
         type: u4
         
-  # File Name Table
+  ### File Name Table ###
+  
   btnf:
     seq:
-      - id: magic
-        contents: "BTNF"
-      - id: section_size
-        type: u4
       - id: directory_table
-        type: directory_entry
+        type: directory_table
+      - id: directories
+        type: directory
+        repeat: expr
+        repeat-expr: directory_table.count
         
-  directory_entry:
+  directory_table:
+    -webide-representation: 'count: {root.directory_count}'
+    instances:
+      count:
+        value: root.directory_count
     seq:
-      - id: directory_start_offset
+      - id: root
+        type: root_entry
+      - id: directories
+        type: directory_entry((_index + 1) | 0xF000)
+        repeat: expr
+        repeat-expr: root.directory_count - 1
+        
+  root_entry:
+    seq:
+      - id: start_offset
+        type: u4
+      - id: first_file_position
+        type: u2
+      - id: directory_count
+        type: u2
+    
+  directory_entry:
+    -webide-representation: 'id: {directory_id}, parent: {parent_directory}'
+    params:
+      - id: directory_id
+        type: u4
+    seq:
+      - id: start_offset
         type: u4
       - id: first_file_position
         type: u2
       - id: parent_directory
         type: u2
         
-  # File Section
-  gmif:
+  directory:
+    -webide-representation: '{content}'
     seq:
-      - id: magic
-        contents: "GMIF"
-      - id: section_size
-        type: u4
+      - id: content
+        type: directory_content
+        terminator: 0
+  
+  directory_content:
+    -webide-representation: '{files}'
+    seq:
       - id: files
-        type: file(_root.file_allocation_table.entries[_index])
+        type: file_entry
+        repeat: eos
+  
+  file_entry: 
+    -webide-representation: '{name}:{directory_id}'
+    seq:
+      - id: flag
+        type: file_flag
+      - id: name
+        type: str
+        size: flag.name_length
+      - id: directory_id
+        type: u2
+        if: flag.is_directory
+        
+  file_flag:
+    seq:
+      - id: is_directory
+        type: b1
+      - id: name_length
+        type: b7
+        
+  ### File Section ###
+  
+  gmif:
+    instances:
+      fat:
+        value: _root.file_allocation_table.data.as<btaf>
+    seq:
+      - id: files
+        type: file(fat.entries[_index])
         repeat: expr
-        repeat-expr: _root.file_allocation_table.file_count
+        repeat-expr: fat.file_count
         
   file:
     params:

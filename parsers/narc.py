@@ -16,11 +16,25 @@ class Narc(KaitaiStruct):
 
     def _read(self):
         self.header = Narc.GenericHeader(self._io, self, self._root)
-        self.file_allocation_table = Narc.Btaf(self._io, self, self._root)
-        self.file_name_table = Narc.Btnf(self._io, self, self._root)
-        self.file_section = Narc.Gmif(self._io, self, self._root)
+        self.file_allocation_table = Narc.Section(self._io, self, self._root)
+        self.file_name_table = Narc.Section(self._io, self, self._root)
+        self.file_section = Narc.Section(self._io, self, self._root)
 
     class DirectoryEntry(KaitaiStruct):
+        def __init__(self, directory_id, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self.directory_id = directory_id
+            self._read()
+
+        def _read(self):
+            self.start_offset = self._io.read_u4le()
+            self.first_file_position = self._io.read_u2le()
+            self.parent_directory = self._io.read_u2le()
+
+
+    class Section(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -28,9 +42,23 @@ class Narc(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.directory_start_offset = self._io.read_u4le()
-            self.first_file_position = self._io.read_u2le()
-            self.parent_directory = self._io.read_u2le()
+            self.magic = (self._io.read_bytes(4)).decode(u"ascii")
+            self.size = self._io.read_u4le()
+            _on = self.magic
+            if _on == u"BTAF":
+                self._raw_data = self._io.read_bytes((self.size - 8))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Narc.Btaf(_io__raw_data, self, self._root)
+            elif _on == u"BTNF":
+                self._raw_data = self._io.read_bytes((self.size - 8))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Narc.Btnf(_io__raw_data, self, self._root)
+            elif _on == u"GMIF":
+                self._raw_data = self._io.read_bytes((self.size - 8))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Narc.Gmif(_io__raw_data, self, self._root)
+            else:
+                self.data = self._io.read_bytes((self.size - 8))
 
 
     class BtafEntry(KaitaiStruct):
@@ -53,14 +81,31 @@ class Narc(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.magic = self._io.read_bytes(4)
-            if not self.magic == b"\x47\x4D\x49\x46":
-                raise kaitaistruct.ValidationNotEqualError(b"\x47\x4D\x49\x46", self.magic, self._io, u"/types/gmif/seq/0")
-            self.section_size = self._io.read_u4le()
             self.files = []
-            for i in range(self._root.file_allocation_table.file_count):
-                self.files.append(Narc.File(self._root.file_allocation_table.entries[i], self._io, self, self._root))
+            for i in range(self.fat.file_count):
+                self.files.append(Narc.File(self.fat.entries[i], self._io, self, self._root))
 
+
+        @property
+        def fat(self):
+            if hasattr(self, '_m_fat'):
+                return self._m_fat
+
+            self._m_fat = self._root.file_allocation_table.data
+            return getattr(self, '_m_fat', None)
+
+
+    class RootEntry(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.start_offset = self._io.read_u4le()
+            self.first_file_position = self._io.read_u2le()
+            self.directory_count = self._io.read_u2le()
 
 
     class GenericHeader(KaitaiStruct):
@@ -111,11 +156,65 @@ class Narc(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.magic = self._io.read_bytes(4)
-            if not self.magic == b"\x42\x54\x4E\x46":
-                raise kaitaistruct.ValidationNotEqualError(b"\x42\x54\x4E\x46", self.magic, self._io, u"/types/btnf/seq/0")
-            self.section_size = self._io.read_u4le()
-            self.directory_table = Narc.DirectoryEntry(self._io, self, self._root)
+            self.directory_table = Narc.DirectoryTable(self._io, self, self._root)
+            self.directories = []
+            for i in range(self.directory_table.count):
+                self.directories.append(Narc.Directory(self._io, self, self._root))
+
+
+
+    class DirectoryContent(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.files = []
+            i = 0
+            while not self._io.is_eof():
+                self.files.append(Narc.FileEntry(self._io, self, self._root))
+                i += 1
+
+
+
+    class DirectoryTable(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.root = Narc.RootEntry(self._io, self, self._root)
+            self.directories = []
+            for i in range((self.root.directory_count - 1)):
+                self.directories.append(Narc.DirectoryEntry(((i + 1) | 61440), self._io, self, self._root))
+
+
+        @property
+        def count(self):
+            if hasattr(self, '_m_count'):
+                return self._m_count
+
+            self._m_count = self.root.directory_count
+            return getattr(self, '_m_count', None)
+
+
+    class FileEntry(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.flag = Narc.FileFlag(self._io, self, self._root)
+            self.name = (self._io.read_bytes(self.flag.name_length)).decode(u"ascii")
+            if self.flag.is_directory:
+                self.directory_id = self._io.read_u2le()
+
 
 
     class Btaf(KaitaiStruct):
@@ -126,15 +225,36 @@ class Narc(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.magic = self._io.read_bytes(4)
-            if not self.magic == b"\x42\x54\x41\x46":
-                raise kaitaistruct.ValidationNotEqualError(b"\x42\x54\x41\x46", self.magic, self._io, u"/types/btaf/seq/0")
-            self.section_size = self._io.read_u4le()
             self.file_count = self._io.read_u4le()
             self.entries = []
             for i in range(self.file_count):
                 self.entries.append(Narc.BtafEntry(self._io, self, self._root))
 
+
+
+    class FileFlag(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.is_directory = self._io.read_bits_int_be(1) != 0
+            self.name_length = self._io.read_bits_int_be(7)
+
+
+    class Directory(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self._raw_content = self._io.read_bytes_term(0, False, True, True)
+            _io__raw_content = KaitaiStream(BytesIO(self._raw_content))
+            self.content = Narc.DirectoryContent(_io__raw_content, self, self._root)
 
 
 
