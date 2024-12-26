@@ -1,6 +1,7 @@
 import os
 
 import click
+from kaitaistruct import KaitaiStructError
 from parsers.narc import Narc
 
 file_index = 0
@@ -91,6 +92,14 @@ def extract_directory(
     directory: Narc.Directory,
     output_dir: str,
 ) -> None:
+    """
+    Extracts all files and sub-directories in a given `directory`. Directory
+    structure and file names are extracted from the `fnt` (file name table) and
+    mapped to the list of `files` data.
+
+    This function is called recursively (via depth-first search) until all
+    sub-directories are extracted.
+    """
     global file_index
 
     os.makedirs(output_dir, exist_ok=True)
@@ -109,14 +118,21 @@ def extract_directory(
             file_index -= 1
 
 
-@cli.command(help="Extract files from a Nintendo Archive.")
-@click.argument("narc_file")  # , help="File path to the NARC file to extract.")
-@click.argument(
-    "output_dir"
-)  # , help="Directory that files are extracted to.")
-def extract(narc_file: str, output_dir: str) -> None:
-    narc = Narc.from_file(narc_file)
+def parse_narc_file(file_path: str) -> Narc | None:
+    try:
+        return Narc.from_file(file_path)
+    except KaitaiStructError:
+        return None
 
+
+def extract(narc: Narc, output_dir: str) -> None:
+    """
+    Extracts files archived in the `narc_file` and writes them to the
+    `output_dir`.
+
+    The directory structure and file names are extracted from the FNT (file
+    name table).
+    """
     files = narc.file_section.data.files
     fnt = narc.file_name_table.data
 
@@ -124,6 +140,39 @@ def extract(narc_file: str, output_dir: str) -> None:
     file_index = len(files) - 1
 
     extract_directory(files, fnt, fnt.directories[0], output_dir)
+
+
+@cli.command("extract", help="Extract files from a Nintendo Archive.")
+@click.argument("narc_file")  # , help="File path to the NARC file to extract.")
+@click.argument(
+    "output_dir"
+)  # , help="Directory that files are extracted to.")
+def extract_single(narc_file: str, output_dir: str) -> None:
+    narc = parse_narc_file(narc_file)
+    if narc is not None:
+        print(f"Extracted {narc_file}...")
+        extract(narc, output_dir)
+        print("Done!")
+    else:
+        print(f"{narc_file} can't be parsed as a NARC file.")
+
+
+@cli.command(help="Extract all NARC files in a given directory.")
+@click.argument("in_dir")
+@click.option("-r", "--recursive", is_flag=True, default=False)
+def extract_all(in_dir: str, recursive: bool) -> None:
+    for directory_path, _, filenames in os.walk(in_dir):
+        for filename in filenames:
+            in_file = os.path.join(directory_path, filename)
+            out_directory = os.path.join(directory_path, filename + ".out")
+
+            narc = parse_narc_file(in_file)
+            if narc is not None:
+                extract(narc, out_directory)
+                print(f"{in_file} extracted")
+
+        if not recursive:
+            break
 
 
 if __name__ == "__main__":
