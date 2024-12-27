@@ -1,11 +1,7 @@
 import os
-from argparse import ArgumentParser, Namespace
 
+import click
 from parsers.nds import Nds
-
-TOOL_DESCRIPTION = """
-Extracts data from key sections of the NDS ROM such as game code and files.
-"""
 
 CODE_FOLDER = "code"
 FILES_FOLDER = "files"
@@ -13,18 +9,11 @@ FILES_FOLDER = "files"
 file_index = 0
 
 
-def parse_arguments() -> Namespace:
-    parser = ArgumentParser(description=TOOL_DESCRIPTION)
-    parser.add_argument(
-        "nds_file", type=str, help="File path to the NDS file to extract."
-    )
-    parser.add_argument(
-        "output_dir",
-        type=str,
-        help="Directory that code and files are extracted to.",
-    )
-
-    return parser.parse_args()
+@click.group()
+def cli() -> None:
+    """
+    Extracts data from key sections of the NDS ROM such as game code and files.
+    """
 
 
 def extract_directory(
@@ -87,13 +76,14 @@ def extract_overlays(overlays: list[Nds.Overlay], output_dir: str) -> None:
         open(file_path, "wb").write(overlay_code)
 
 
-def main() -> None:
-    args = parse_arguments()
+@cli.command(help="Extracts data from key sections of the NDS ROM.")
+@click.argument("nds_file", type=str)
+@click.argument("output_dir", type=str)
+def extract(nds_file: str, output_dir: str) -> None:
+    nds = Nds.from_file(nds_file)
 
-    nds = Nds.from_file(args.nds_file)
-
-    code_dir = os.path.join(args.output_dir, CODE_FOLDER)
-    files_dir = os.path.join(args.output_dir, FILES_FOLDER)
+    code_dir = os.path.join(output_dir, CODE_FOLDER)
+    files_dir = os.path.join(output_dir, FILES_FOLDER)
 
     os.makedirs(code_dir, exist_ok=True)
     os.makedirs(files_dir, exist_ok=True)
@@ -103,4 +93,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    cli()
