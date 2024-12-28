@@ -22,15 +22,21 @@ class Nds(KaitaiStruct):
 
     def _read(self):
         self.header = Nds.Header(self._io, self, self._root)
-        self.extended_header = Nds.ExtendedHeader(self._io, self, self._root)
+        if self.header.unit_code != Nds.UnitCodeEnum.nds:
+            self.extended_header = Nds.ExtendedHeader(self._io, self, self._root)
+
         self.files = []
         for i in range(len(self.file_allocation_table)):
             self.files.append(Nds.File(self.file_allocation_table[i], self._io, self, self._root))
 
         self.arm9 = Nds.CodeSection(self.header.arm9, self._io, self, self._root)
         self.arm7 = Nds.CodeSection(self.header.arm7, self._io, self, self._root)
-        self.arm9i = Nds.CodeSection(self.extended_header.arm9i, self._io, self, self._root)
-        self.arm7i = Nds.CodeSection(self.extended_header.arm7i, self._io, self, self._root)
+        if self.header.unit_code != Nds.UnitCodeEnum.nds:
+            self.arm9i = Nds.CodeSection(self.extended_header.arm9i, self._io, self, self._root)
+
+        if self.header.unit_code != Nds.UnitCodeEnum.nds:
+            self.arm7i = Nds.CodeSection(self.extended_header.arm7i, self._io, self, self._root)
+
         self.arm9_overlays = []
         for i in range(len(self.arm9_overlay_table.entries)):
             self.arm9_overlays.append(Nds.Overlay(self.arm9_overlay_table.entries[i], self._io, self, self._root))

@@ -300,6 +300,7 @@ seq:
     type: header
   - id: extended_header
     type: extended_header
+    if: header.unit_code != unit_code_enum::nds
   - id: files
     type: file(file_allocation_table[_index])
     repeat: expr
@@ -310,8 +311,10 @@ seq:
     type: code_section(header.arm7)
   - id: arm9i
     type: code_section(extended_header.arm9i)
+    if: header.unit_code != unit_code_enum::nds
   - id: arm7i
     type: code_section(extended_header.arm7i)
+    if: header.unit_code != unit_code_enum::nds
   - id: arm9_overlays
     type: overlay(arm9_overlay_table.entries[_index])
     repeat: expr
