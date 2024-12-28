@@ -243,7 +243,7 @@ class Nds(KaitaiStruct):
             self.maker_code = (self._io.read_bytes(2)).decode(u"ascii")
             self.unit_code = KaitaiStream.resolve_enum(Nds.UnitCodeEnum, self._io.read_u1())
             self.encryption_seed = self._io.read_u1()
-            self.device_capcity = self._io.read_u1()
+            self.device_capacity = self._io.read_u1()
             self.reserved = self._io.read_bytes(7)
             self.game_revision = self._io.read_bytes(2)
             self.rom_version = self._io.read_u1()

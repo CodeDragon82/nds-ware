@@ -26,7 +26,7 @@ types:
         enum: unit_code_enum
       - id: encryption_seed
         type: u1
-      - id: device_capcity
+      - id: device_capacity
         type: u1
       - id: reserved
         size: 7
