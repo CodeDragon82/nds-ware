@@ -89,6 +89,27 @@ def is_dsi(nds: Nds) -> bool:
     return nds.header.unit_code.value != 0
 
 
+@cli.command(help="Display basic information about a NDS ROM.")
+@click.argument("nds_file", type=str)
+def info(nds_file: str) -> None:
+    nds = Nds.from_file(nds_file)
+
+    info = [
+        ("Game Title", nds.header.game_title),
+        ("Maker Code", nds.header.maker_code),
+        ("Unit Code", f"{nds.header.unit_code.name} ({nds.header.unit_code.value})"),
+        ("Encryption Seed", nds.header.encryption_seed),
+        ("Device Capacity", nds.header.device_capacity),
+        ("Game Revision", nds.header.game_revision),
+        ("ROM Version", nds.header.rom_version),
+        ("Internal Flags", nds.header.internal_flags),
+        ("Normal Card Control Register Settings", nds.header.normal_card_control_register_settings),
+        ("Secure Card Control Register Settings", nds.header.secure_card_control_register_settings),
+        ("Secure Disable", nds.header.secure_disable),
+    ]
+
+    for name, value in info:
+        print(f"{name:40} {value}")
 
 
 def log_section(name: str, info: Nds.FatEntry | Nds.SectionInfo | Nds.CodeSectionInfo) -> tuple[int, int, str]:
