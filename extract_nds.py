@@ -16,9 +16,7 @@ def cli() -> None:
     """
 
 
-def extract_directory(
-    nds: Nds, directory: Nds.Directory, output_dir: str
-) -> None:
+def extract_directory(nds: Nds, directory: Nds.Directory, output_dir: str) -> None:
     global file_index
 
     for file in reversed(directory.content.files):
@@ -27,9 +25,7 @@ def extract_directory(
             os.makedirs(new_output_dir, exist_ok=True)
 
             next_directory_index = file.directory_id & 0xFF
-            next_directory = nds.file_name_table.directories[
-                next_directory_index
-            ]
+            next_directory = nds.file_name_table.directories[next_directory_index]
             extract_directory(nds, next_directory, new_output_dir)
         else:
             file_path = os.path.join(output_dir, file.name)
@@ -58,12 +54,8 @@ def extract_code(nds: Nds, output_dir: str) -> None:
         file_path = os.path.join(output_dir, file_name)
         open(file_path, "wb").write(code.data)
 
-    extract_overlays(
-        nds.arm7_overlays, os.path.join(output_dir, "arm7_overlays")
-    )
-    extract_overlays(
-        nds.arm9_overlays, os.path.join(output_dir, "arm9_overlays")
-    )
+    extract_overlays(nds.arm7_overlays, os.path.join(output_dir, "arm7_overlays"))
+    extract_overlays(nds.arm9_overlays, os.path.join(output_dir, "arm9_overlays"))
 
 
 def extract_overlays(overlays: list[Nds.Overlay], output_dir: str) -> None:
@@ -90,6 +82,52 @@ def extract(nds_file: str, output_dir: str) -> None:
 
     extract_files(nds, files_dir)
     extract_code(nds, code_dir)
+
+
+def is_dsi(nds: Nds) -> bool:
+    """Checks the `unit_code` in the ROM header to determine if it includes DSi-specific data sections."""
+    return nds.header.unit_code.value != 0
+
+
+
+
+def log_section(name: str, info: Nds.FatEntry | Nds.SectionInfo | Nds.CodeSectionInfo) -> tuple[int, int, str]:
+    """Converts section information into a common format: `(start_offset, end_offset, name)`"""
+    if isinstance(info, Nds.FatEntry):
+        return info.start_offset, info.end_offset, name
+
+    return info.offset, info.offset + info.size, name
+
+
+@cli.command(help="List the data sections within a NDS ROM.")
+@click.argument("nds_file", type=str)
+def sections(nds_file: str) -> None:
+    nds = Nds.from_file(nds_file)
+
+    data_sections = [
+        (0x0, 0x4000, "Header"),
+        log_section("ARM9 Code", nds.header.arm9),
+        log_section("ARM9 Overlay", nds.header.arm9_overlay),
+        log_section("ARM7 Code", nds.header.arm7),
+        log_section("ARM7 Overlay", nds.header.arm7_overlay),
+        log_section("FNT (File Name Table)", nds.header.fnt_info),
+        log_section("FAT (File Allocation Table)", nds.header.fat_info),
+    ]
+
+    if is_dsi(nds):
+        data_sections.append(log_section("ARM9i Code", nds.extended_header.arm9i))
+        data_sections.append(log_section("ARM7i Code", nds.extended_header.arm7i))
+
+    for i, entry in enumerate(nds.file_allocation_table):
+        data_sections.append(log_section(f"FILE {i}", entry))
+
+    data_sections.sort()
+
+    for section in data_sections:
+        print(
+            f"0x{section[0]:08x} - 0x{section[1]:08x}",
+            f"{section[1] - section[0]:10}B\t{section[2]}",
+        )
 
 
 if __name__ == "__main__":
