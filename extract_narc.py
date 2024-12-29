@@ -43,9 +43,7 @@ def list_directory(
             next_directory = fnt.directories[next_directory_index]
 
             if depth < max_depth or max_depth == -1:
-                list_directory(
-                    fnt, next_directory, depth + 1, max_depth, show_option
-                )
+                list_directory(fnt, next_directory, depth + 1, max_depth, show_option)
         elif show_option in ["files", "all"]:
             print(f"{indent} {file.name}")
 
@@ -123,6 +121,9 @@ def parse_narc_file(file_path: str) -> Narc | None:
         return Narc.from_file(file_path)
     except KaitaiStructError:
         return None
+    except Exception as e:
+        print(f"ERROR: failed parsing {file_path} ({e})")
+        return None
 
 
 def extract(narc: Narc, output_dir: str) -> None:
@@ -144,9 +145,7 @@ def extract(narc: Narc, output_dir: str) -> None:
 
 @cli.command("extract", help="Extract files from a Nintendo Archive.")
 @click.argument("narc_file")  # , help="File path to the NARC file to extract.")
-@click.argument(
-    "output_dir"
-)  # , help="Directory that files are extracted to.")
+@click.argument("output_dir")  # , help="Directory that files are extracted to.")
 def extract_single(narc_file: str, output_dir: str) -> None:
     narc = parse_narc_file(narc_file)
     if narc is not None:
@@ -169,7 +168,7 @@ def extract_all(in_dir: str, recursive: bool) -> None:
             narc = parse_narc_file(in_file)
             if narc is not None:
                 extract(narc, out_directory)
-                print(f"{in_file} extracted")
+                print(f"EXTRACTED {in_file}")
 
         if not recursive:
             break
