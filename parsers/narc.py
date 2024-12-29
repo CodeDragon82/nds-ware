@@ -42,7 +42,7 @@ class Narc(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.magic = (self._io.read_bytes(4)).decode(u"ascii")
+            self.magic = (self._io.read_bytes(4)).decode(u"latin-1")
             self.size = self._io.read_u4le()
             _on = self.magic
             if _on == u"BTAF":
@@ -211,7 +211,7 @@ class Narc(KaitaiStruct):
 
         def _read(self):
             self.flag = Narc.FileFlag(self._io, self, self._root)
-            self.name = (self._io.read_bytes(self.flag.name_length)).decode(u"ascii")
+            self.name = (self._io.read_bytes(self.flag.name_length)).decode(u"latin-1")
             if self.flag.is_directory:
                 self.directory_id = self._io.read_u2le()
 

@@ -1,7 +1,7 @@
 meta:
   id: narc
   endian: le
-  encoding: ascii
+  encoding: latin-1
   file-extension: narc
   
 seq:
