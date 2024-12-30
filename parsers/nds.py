@@ -294,22 +294,6 @@ class Nds(KaitaiStruct):
             return getattr(self, '_m_data', None)
 
 
-    class DirectoryContent(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
-            self._io = _io
-            self._parent = _parent
-            self._root = _root if _root else self
-            self._read()
-
-        def _read(self):
-            self.files = []
-            i = 0
-            while not self._io.is_eof():
-                self.files.append(Nds.FileEntry(self._io, self, self._root))
-                i += 1
-
-
-
     class FileEntry(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -318,23 +302,27 @@ class Nds(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.flag = Nds.FileFlag(self._io, self, self._root)
-            self.name = (self._io.read_bytes(self.flag.name_length)).decode(u"ascii")
-            if self.flag.is_directory:
+            self.flag = self._io.read_u1()
+            self.name = (self._io.read_bytes(self.name_length)).decode(u"ascii")
+            if self.is_directory:
                 self.directory_id = self._io.read_u2le()
 
 
+        @property
+        def is_directory(self):
+            if hasattr(self, '_m_is_directory'):
+                return self._m_is_directory
 
-    class FileFlag(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
-            self._io = _io
-            self._parent = _parent
-            self._root = _root if _root else self
-            self._read()
+            self._m_is_directory = (self.flag >> 7)
+            return getattr(self, '_m_is_directory', None)
 
-        def _read(self):
-            self.is_directory = self._io.read_bits_int_be(1) != 0
-            self.name_length = self._io.read_bits_int_be(7)
+        @property
+        def name_length(self):
+            if hasattr(self, '_m_name_length'):
+                return self._m_name_length
+
+            self._m_name_length = (self.flag & 127)
+            return getattr(self, '_m_name_length', None)
 
 
     class CodeSectionInfo(KaitaiStruct):
@@ -359,9 +347,14 @@ class Nds(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self._raw_content = self._io.read_bytes_term(0, False, True, True)
-            _io__raw_content = KaitaiStream(BytesIO(self._raw_content))
-            self.content = Nds.DirectoryContent(_io__raw_content, self, self._root)
+            self.files = []
+            i = 0
+            while True:
+                _ = Nds.FileEntry(self._io, self, self._root)
+                self.files.append(_)
+                if _.flag == 0:
+                    break
+                i += 1
 
 
     @property

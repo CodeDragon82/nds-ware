@@ -177,6 +177,7 @@ types:
         repeat: expr
         repeat-expr: directory_count
         
+        
   directory_entry:
     -webide-representation: 'id:{id} parent_id:{parent_directory}'
     params:
@@ -191,37 +192,29 @@ types:
         type: u2
         
   directory:
-    -webide-representation: '{content}'
-    seq:
-      - id: content
-        type: directory_content
-        terminator: 0
-  
-  directory_content:
     -webide-representation: '{files}'
     seq:
       - id: files
         type: file_entry
-        repeat: eos
+        repeat: until
+        repeat-until: _.flag == 0
         
   file_entry: 
     -webide-representation: '{name}:{directory_id}'
+    instances:
+      is_directory:
+        value: (flag >> 7).as<bool> # 1st bit
+      name_length:
+        value: flag & 0x7F # last 7 bits
     seq:
       - id: flag
-        type: file_flag
+        type: u1
       - id: name
         type: str
-        size: flag.name_length
+        size: name_length
       - id: directory_id
         type: u2
-        if: flag.is_directory
-        
-  file_flag:
-    seq:
-      - id: is_directory
-        type: b1
-      - id: name_length
-        type: b7
+        if: is_directory
   
   ##### #####
   
