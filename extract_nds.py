@@ -19,12 +19,12 @@ def cli() -> None:
 def extract_directory(nds: Nds, directory: Nds.Directory, output_dir: str) -> None:
     global file_index
 
-    for file in reversed(directory.content.files):
-        if file.flag.is_directory:
+    for file in reversed(directory.files[:-1]):
+        if file.is_directory:
             new_output_dir = os.path.join(output_dir, file.name)
             os.makedirs(new_output_dir, exist_ok=True)
 
-            next_directory_index = file.directory_id & 0xFF
+            next_directory_index = file.directory_id & 0xFFF
             next_directory = nds.file_name_table.directories[next_directory_index]
             extract_directory(nds, next_directory, new_output_dir)
         else:
@@ -45,10 +45,13 @@ def extract_files(nds: Nds, output_dir: str) -> None:
 def extract_code(nds: Nds, output_dir: str) -> None:
     code_files = [
         ("arm7", nds.arm7),
-        ("arm7i", nds.arm7i),
         ("arm9", nds.arm9),
-        ("arm9i", nds.arm9i),
     ]
+    if is_dsi(nds):
+        code_files += [
+            ("arm7i", nds.arm7i),
+            ("arm9i", nds.arm9i),
+        ]
 
     for file_name, code in code_files:
         file_path = os.path.join(output_dir, file_name)
