@@ -4,8 +4,6 @@ import click
 from kaitaistruct import KaitaiStructError
 from parsers.narc import Narc
 
-file_index = 0
-
 
 @click.group()
 def cli() -> None:
@@ -39,7 +37,7 @@ def list_directory(
             if show_option in ["directories", "all"]:
                 print(f"{indent} {file.name} (DIR)")
 
-            next_directory_index = file.directory_id & 0xFF
+            next_directory_index = file.directory_id & 0xFFF
             next_directory = fnt.directories[next_directory_index]
 
             if depth < max_depth or max_depth == -1:
@@ -88,8 +86,9 @@ def extract_directory(
     files: list[Narc.File],
     fnt: Narc.Btnf,
     directory: Narc.Directory,
+    file_index: int,
     output_dir: str,
-) -> None:
+) -> int:
     """
     Extracts all files and sub-directories in a given `directory`. Directory
     structure and file names are extracted from the `fnt` (file name table) and
@@ -98,22 +97,22 @@ def extract_directory(
     This function is called recursively (via depth-first search) until all
     sub-directories are extracted.
     """
-    global file_index
-
     os.makedirs(output_dir, exist_ok=True)
 
     for file in reversed(directory.content.files):
         if file.flag.is_directory:
             new_output_dir = os.path.join(output_dir, file.name)
 
-            next_directory_index = file.directory_id & 0xFF
+            next_directory_index = file.directory_id & 0xFFF
             next_directory = fnt.directories[next_directory_index]
-            extract_directory(files, fnt, next_directory, new_output_dir)
+            file_index = extract_directory(files, fnt, next_directory, file_index, new_output_dir)
         else:
             file_path = os.path.join(output_dir, file.name)
             file_data = files[file_index].data
             open(file_path, "wb").write(file_data)
             file_index -= 1
+
+    return file_index
 
 
 def parse_narc_file(file_path: str) -> Narc | None:
@@ -137,10 +136,10 @@ def extract(narc: Narc, output_dir: str) -> None:
     files = narc.file_section.data.files
     fnt = narc.file_name_table.data
 
-    global file_index
     file_index = len(files) - 1
 
-    extract_directory(files, fnt, fnt.directories[0], output_dir)
+    if narc.file_name_table.size > 16:
+        extract_directory(files, fnt, fnt.directories[0], file_index, output_dir)
 
 
 @cli.command("extract", help="Extract files from a Nintendo Archive.")
