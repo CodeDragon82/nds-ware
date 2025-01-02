@@ -138,8 +138,17 @@ def extract(narc: Narc, output_dir: str) -> None:
 
     file_index = len(files) - 1
 
+    # Extract files mapped in the FNT.
     if narc.file_name_table.size > 16:
-        extract_directory(files, fnt, fnt.directories[0], file_index, output_dir)
+        file_index = extract_directory(files, fnt, fnt.directories[0], file_index, output_dir)
+
+    # Extract files NOT mapped in the FNT.
+    os.makedirs(output_dir, exist_ok=True)
+    while file_index > -1:
+        file_path = os.path.join(output_dir, str(file_index))
+        file_data = files[file_index].data
+        open(file_path, "wb").write(file_data)
+        file_index -= 1
 
 
 @cli.command("extract", help="Extract files from a Nintendo Archive.")
