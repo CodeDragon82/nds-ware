@@ -1,7 +1,7 @@
 meta:
   id: narc
   endian: le
-  encoding: latin-1
+  encoding: ascii
   file-extension: narc
   
 seq:
@@ -73,6 +73,7 @@ types:
         type: directory
         repeat: expr
         repeat-expr: directory_table.count
+        if: _parent.size > 16
         
   directory_table:
     -webide-representation: 'count: {root.directory_count}'
