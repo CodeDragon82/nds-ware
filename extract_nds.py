@@ -1,6 +1,7 @@
 import os
 
 import click
+
 from parsers.nds import Nds
 
 CODE_FOLDER = "code"
@@ -79,8 +80,8 @@ def extract_overlays(overlays: list[Nds.Overlay], output_dir: str) -> None:
 
     os.makedirs(output_dir, exist_ok=True)
 
-    for i in range(len(overlays)):
-        overlay_code = overlays[i].data
+    for i, overlay in enumerate(overlays):
+        overlay_code = overlay.data
         file_name = str(i)
         file_path = os.path.join(output_dir, file_name)
         open(file_path, "wb").write(overlay_code)
@@ -119,33 +120,42 @@ def info(nds_file: str) -> None:
 
     nds = Nds.from_file(nds_file)
 
-    info = [
+    nds_info = [
         ("Game Title", nds.header.game_title),
         ("Maker Code", nds.header.maker_code),
-        ("Unit Code", f"{nds.header.unit_code.name} ({nds.header.unit_code.value})"),
+        (
+            "Unit Code",
+            f"{nds.header.unit_code.name} ({nds.header.unit_code.value})",
+        ),
         ("Encryption Seed", nds.header.encryption_seed),
         ("Device Capacity", nds.header.device_capacity),
         ("Game Revision", nds.header.game_revision),
         ("ROM Version", nds.header.rom_version),
         ("Internal Flags", nds.header.internal_flags),
-        ("Normal Card Control Register Settings", nds.header.normal_card_control_register_settings),
-        ("Secure Card Control Register Settings", nds.header.secure_card_control_register_settings),
+        (
+            "Normal Card Control Register Settings",
+            nds.header.normal_card_control_register_settings,
+        ),
+        (
+            "Secure Card Control Register Settings",
+            nds.header.secure_card_control_register_settings,
+        ),
         ("Secure Disable", nds.header.secure_disable),
     ]
 
-    for name, value in info:
+    for name, value in nds_info:
         print(f"{name:40} {value}")
 
 
-def log_section(name: str, info: Nds.FatEntry | Nds.SectionInfo | Nds.CodeSectionInfo) -> tuple[int, int, str]:
+def log_section(name: str, section_info: Nds.FatEntry | Nds.SectionInfo | Nds.CodeSectionInfo) -> tuple[int, int, str]:
     """
     Converts section information into a common format: `(start_offset, end_offset, name)`
     """
 
-    if isinstance(info, Nds.FatEntry):
-        return info.start_offset, info.end_offset, name
+    if isinstance(section_info, Nds.FatEntry):
+        return section_info.start_offset, section_info.end_offset, name
 
-    return info.offset, info.offset + info.size, name
+    return section_info.offset, section_info.offset + section_info.size, name
 
 
 @cli.command(help="List the data sections within a NDS ROM.")
