@@ -7,7 +7,7 @@ import os
 import click
 from kaitaistruct import KaitaiStructError
 
-from parsers.narc import Narc
+from ndsware.parsers.narc import Narc
 
 
 @click.group()

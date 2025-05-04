@@ -1,0 +1,19 @@
+[project]
+name = "ndsware"
+version = "0.1.0"
+description = "A suite of tools for reverse engineering Nintendo games"
+authors = [{ name="CodeDragon82" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "click >=8.1.7",
+  "kaitaistruct >=0.10"
+]
+
+[project.scripts]
+extract_nds = "ndsware.extract_nds:cli"
+extract_narc = "ndsware.extract_narc:cli"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

@@ -9,7 +9,7 @@ import os
 
 import click
 
-from parsers.nds import Nds
+from ndsware.parsers.nds import Nds
 
 CODE_FOLDER = "code"
 FILES_FOLDER = "files"
