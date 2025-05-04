@@ -24,7 +24,17 @@ def cli() -> None:
     """
 
 
-def extract_directory(nds: Nds, directory: Nds.Directory, output_dir: str) -> None:
+@cli.command(help="Display files/directory structure.")
+@click.argument("nds_file", type=str)
+def files(nds_file: str) -> None:
+    """Displays the file/directory structure of the NDS ROM."""
+
+    nds = Nds.from_file(nds_file)
+
+    extract_files(nds, None)
+
+
+def extract_directory(nds: Nds, directory: Nds.Directory, indent: int, output_dir: str | None) -> None:
     """
     Loops through each entry in a FNT directory.
 
@@ -37,28 +47,34 @@ def extract_directory(nds: Nds, directory: Nds.Directory, output_dir: str) -> No
     global file_index
 
     for file in reversed(directory.files[:-1]):
+        if output_dir is None:
+            print("\t" * indent + file.name)
+
         if file.is_directory:
-            new_output_dir = os.path.join(output_dir, file.name)
-            os.makedirs(new_output_dir, exist_ok=True)
+            if output_dir:
+                output_dir = os.path.join(output_dir, file.name)
+                os.makedirs(output_dir, exist_ok=True)
 
             next_directory_index = file.directory_id & 0xFFF
             next_directory = nds.file_name_table.directories[next_directory_index]
-            extract_directory(nds, next_directory, new_output_dir)
+            extract_directory(nds, next_directory, indent + 1, output_dir)
         else:
-            file_path = os.path.join(output_dir, file.name)
-            file_data = nds.files[file_index].data
-            open(file_path, "wb").write(file_data)
+            if output_dir:
+                file_path = os.path.join(output_dir, file.name)
+                file_data = nds.files[file_index].data
+                open(file_path, "wb").write(file_data)
+
             file_index -= 1
 
 
-def extract_files(nds: Nds, output_dir: str) -> None:
+def extract_files(nds: Nds, output_dir: str | None) -> None:
     """Fetches the root directory entry in the FNT and calls `extract_directory` on it."""
 
     global file_index
     file_index = len(nds.files) - 1
 
     root = nds.file_name_table.directories[0]
-    extract_directory(nds, root, output_dir)
+    extract_directory(nds, root, 0, output_dir)
 
 
 def extract_code(nds: Nds, output_dir: str) -> None:
