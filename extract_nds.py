@@ -17,6 +17,15 @@ def cli() -> None:
 
 
 def extract_directory(nds: Nds, directory: Nds.Directory, output_dir: str) -> None:
+    """
+    Loops through each entry in a FNT directory.
+
+    If the entry is a file, file data pointed to by the FAT is extracted and written to the new file. The
+    name of the new file defined in the entry. Then the `file_index` is then incremented.
+
+    If the entry is a directory, a new directory with the name specified in the entry is created and the
+    `extract_directory` is called again of the new directory.
+    """
     global file_index
 
     for file in reversed(directory.files[:-1]):
@@ -35,6 +44,8 @@ def extract_directory(nds: Nds, directory: Nds.Directory, output_dir: str) -> No
 
 
 def extract_files(nds: Nds, output_dir: str) -> None:
+    """Fetches the root directory entry in the FNT and calls `extract_directory` on it."""
+
     global file_index
     file_index = len(nds.files) - 1
 
@@ -43,6 +54,8 @@ def extract_files(nds: Nds, output_dir: str) -> None:
 
 
 def extract_code(nds: Nds, output_dir: str) -> None:
+    """Extract and write each code section to a file, including the overlay sections."""
+
     code_files = [
         ("arm7", nds.arm7),
         ("arm9", nds.arm9),
@@ -62,6 +75,8 @@ def extract_code(nds: Nds, output_dir: str) -> None:
 
 
 def extract_overlays(overlays: list[Nds.Overlay], output_dir: str) -> None:
+    """Extracts the overlay section data from the NDS ROM, writing each overlay to a new file in `output_dir`."""
+
     os.makedirs(output_dir, exist_ok=True)
 
     for i in range(len(overlays)):
@@ -75,6 +90,8 @@ def extract_overlays(overlays: list[Nds.Overlay], output_dir: str) -> None:
 @click.argument("nds_file", type=str)
 @click.argument("output_dir", type=str)
 def extract(nds_file: str, output_dir: str) -> None:
+    """Extracts extracts file and code sections from the NDS ROM and writes the data to files in the `output_dir`."""
+
     nds = Nds.from_file(nds_file)
 
     code_dir = os.path.join(output_dir, CODE_FOLDER)
@@ -88,13 +105,18 @@ def extract(nds_file: str, output_dir: str) -> None:
 
 
 def is_dsi(nds: Nds) -> bool:
-    """Checks the `unit_code` in the ROM header to determine if it includes DSi-specific data sections."""
+    """
+    Checks the `unit_code` in the ROM header to determine if it includes DSi-specific data sections.
+    """
+
     return nds.header.unit_code.value != 0
 
 
 @cli.command(help="Display basic information about a NDS ROM.")
 @click.argument("nds_file", type=str)
 def info(nds_file: str) -> None:
+    """Displays header information from the NDS ROM."""
+
     nds = Nds.from_file(nds_file)
 
     info = [
@@ -116,7 +138,10 @@ def info(nds_file: str) -> None:
 
 
 def log_section(name: str, info: Nds.FatEntry | Nds.SectionInfo | Nds.CodeSectionInfo) -> tuple[int, int, str]:
-    """Converts section information into a common format: `(start_offset, end_offset, name)`"""
+    """
+    Converts section information into a common format: `(start_offset, end_offset, name)`
+    """
+
     if isinstance(info, Nds.FatEntry):
         return info.start_offset, info.end_offset, name
 
@@ -126,6 +151,8 @@ def log_section(name: str, info: Nds.FatEntry | Nds.SectionInfo | Nds.CodeSectio
 @cli.command(help="List the data sections within a NDS ROM.")
 @click.argument("nds_file", type=str)
 def sections(nds_file: str) -> None:
+    """Displays the address ranges and names of sections in the NDS ROM."""
+
     nds = Nds.from_file(nds_file)
 
     data_sections = [
