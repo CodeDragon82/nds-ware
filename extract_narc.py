@@ -1,7 +1,12 @@
+"""
+A tool for extracting files from a Nintendo Archive (NARC).
+"""
+
 import os
 
 import click
 from kaitaistruct import KaitaiStructError
+
 from parsers.narc import Narc
 
 
@@ -13,6 +18,7 @@ def cli() -> None:
 @cli.command(help="Count the number of files in a Nintendo Archive.")
 @click.argument("narc_file")
 def count(narc_file: str) -> None:
+    """Counts the number of files in a NARC."""
     narc = Narc.from_file(narc_file)
 
     file_count = len(narc.file_section.data.files)
@@ -27,6 +33,7 @@ def list_directory(
     max_depth: int,
     show_option: str,
 ) -> None:
+    """Recursively loops through the FNT and prints out the directory structure of the archive."""
     for file in reversed(directory.content.files):
         if show_option in ["directories", "all"]:
             indent = depth * "  " + "-"
@@ -75,6 +82,7 @@ def list_directory(
     help="Show files and directory structure.",
 )
 def list_archive(narc_file: str, max_depth: int, show_option: str) -> None:
+    """Displays files and folders within a Nintendo Archive (NARC)."""
     narc = Narc.from_file(narc_file)
 
     fnt = narc.file_name_table.data
@@ -116,6 +124,8 @@ def extract_directory(
 
 
 def parse_narc_file(file_path: str) -> Narc | None:
+    """Attempts to parse a file with the NARC Kaitai parser."""
+
     try:
         return Narc.from_file(file_path)
     except KaitaiStructError:
@@ -152,9 +162,10 @@ def extract(narc: Narc, output_dir: str) -> None:
 
 
 @cli.command("extract", help="Extract files from a Nintendo Archive.")
-@click.argument("narc_file")  # , help="File path to the NARC file to extract.")
-@click.argument("output_dir")  # , help="Directory that files are extracted to.")
+@click.argument("narc_file")
+@click.argument("output_dir")
 def extract_single(narc_file: str, output_dir: str) -> None:
+    """Extracts a single NARC archive file."""
     narc = parse_narc_file(narc_file)
     if narc is not None:
         print(f"Extracted {narc_file}...")
@@ -168,6 +179,7 @@ def extract_single(narc_file: str, output_dir: str) -> None:
 @click.argument("in_dir")
 @click.option("-r", "--recursive", is_flag=True, default=False)
 def extract_all(in_dir: str, recursive: bool) -> None:
+    """Extracts all NARC archive files in a given directory."""
     for directory_path, _, filenames in os.walk(in_dir):
         for filename in filenames:
             in_file = os.path.join(directory_path, filename)
