@@ -170,13 +170,18 @@ def info(nds_file: str) -> None:
         print(f"{name:40} {value}")
 
 
-def log_section(name: str, section_info: Nds.FatEntry | Nds.SectionInfo | Nds.CodeSectionInfo) -> tuple[int, int, str]:
+def log_section(
+    name: str, section_info: Nds.FatEntry | Nds.OverlayEntry | Nds.SectionInfo | Nds.CodeSectionInfo
+) -> tuple[int, int, str]:
     """
     Converts section information into a common format: `(start_offset, end_offset, name)`
     """
 
     if isinstance(section_info, Nds.FatEntry):
         return section_info.start_offset, section_info.end_offset, name
+
+    if isinstance(section_info, Nds.OverlayEntry):
+        return section_info.start_address, section_info.end_address, name
 
     return section_info.offset, section_info.offset + section_info.size, name
 
@@ -191,9 +196,9 @@ def sections(nds_file: str) -> None:
     data_sections = [
         (0x0, 0x4000, "Header"),
         log_section("ARM9 Code", nds.header.arm9),
-        log_section("ARM9 Overlay", nds.header.arm9_overlay),
+        log_section("ARM9 Overlay Table", nds.header.arm9_overlay),
         log_section("ARM7 Code", nds.header.arm7),
-        log_section("ARM7 Overlay", nds.header.arm7_overlay),
+        log_section("ARM7 Overlay Table", nds.header.arm7_overlay),
         log_section("FNT (File Name Table)", nds.header.fnt_info),
         log_section("FAT (File Allocation Table)", nds.header.fat_info),
     ]
@@ -204,6 +209,12 @@ def sections(nds_file: str) -> None:
 
     for i, entry in enumerate(nds.file_allocation_table):
         data_sections.append(log_section(f"FILE {i}", entry))
+
+    for i, entry in enumerate(nds.arm9_overlay_table.entries):
+        data_sections.append(log_section(f"ARM9 Overlay {i}", entry))
+
+    for i, entry in enumerate(nds.arm7_overlay_table.entries):
+        data_sections.append(log_section(f"ARM7 Overlay {i}", entry))
 
     data_sections.sort()
 
