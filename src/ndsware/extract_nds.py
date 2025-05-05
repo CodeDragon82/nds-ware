@@ -191,9 +191,9 @@ def sections(nds_file: str) -> None:
     data_sections = [
         (0x0, 0x4000, "Header"),
         log_section("ARM9 Code", nds.header.arm9),
-        log_section("ARM9 Overlay", nds.header.arm9_overlay),
+        log_section("ARM9 Overlay Table", nds.header.arm9_overlay),
         log_section("ARM7 Code", nds.header.arm7),
-        log_section("ARM7 Overlay", nds.header.arm7_overlay),
+        log_section("ARM7 Overlay Table", nds.header.arm7_overlay),
         log_section("FNT (File Name Table)", nds.header.fnt_info),
         log_section("FAT (File Allocation Table)", nds.header.fat_info),
     ]
