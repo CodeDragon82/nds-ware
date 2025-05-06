@@ -8,6 +8,7 @@ Data: 04/05/2025
 import os
 
 import click
+from tabulate import tabulate
 
 from ndsware.parsers.nds import Nds
 
@@ -223,6 +224,39 @@ def sections(nds_file: str) -> None:
             f"0x{section[0]:08x} - 0x{section[1]:08x}",
             f"{section[1] - section[0]:10}B\t{section[2]}",
         )
+
+
+def displays_overlays(overlays: list[Nds.Overlay]) -> None:
+    headers = ["ROM Offset", "Index", "Base Address", "BSS", "Static Init", "File ID", "Reserved"]
+
+    rows = []
+    for overlay in overlays:
+        rows.append(
+            [
+                f"{hex(overlay.file.info.start_offset)}-{hex(overlay.file.info.end_offset)}",
+                overlay.info.index,
+                hex(overlay.info.base_address),
+                overlay.info.bss_size,
+                f"{hex(overlay.info.start_address)}-{hex(overlay.info.end_address)}",
+                overlay.info.file_id,
+                hex(overlay.info.reserved),
+            ]
+        )
+
+    print(tabulate(rows, headers=headers, tablefmt="pretty"))
+
+
+@cli.command(help="Display a table of overlay information from the NDS ROM.")
+@click.argument("nds_file", type=str)
+def overlays(nds_file: str) -> None:
+    """Displays a table of overlay information from the NDS ROM."""
+    nds = Nds.from_file(nds_file)
+
+    print("\nARM9 Overlays\n" + "=" * 13)
+    displays_overlays(nds.arm9_overlays)
+
+    print("\nARM7 Overlays\n" + "=" * 13)
+    displays_overlays(nds.arm7_overlays)
 
 
 if __name__ == "__main__":
