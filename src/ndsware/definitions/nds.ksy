@@ -284,9 +284,8 @@ types:
       - id: info
         type: overlay_entry
     instances:
-      data:
-        pos: info.start_address
-        size: info.length
+      file:
+        value: _root.files[info.index]
 
 seq:
   - id: header
