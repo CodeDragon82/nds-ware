@@ -120,15 +120,12 @@ class Nds(KaitaiStruct):
             pass
 
         @property
-        def data(self):
-            if hasattr(self, '_m_data'):
-                return self._m_data
+        def file(self):
+            if hasattr(self, '_m_file'):
+                return self._m_file
 
-            _pos = self._io.pos()
-            self._io.seek(self.info.start_address)
-            self._m_data = self._io.read_bytes(self.info.length)
-            self._io.seek(_pos)
-            return getattr(self, '_m_data', None)
+            self._m_file = self._root.files[self.info.index]
+            return getattr(self, '_m_file', None)
 
 
     class DirectoryEntry(KaitaiStruct):

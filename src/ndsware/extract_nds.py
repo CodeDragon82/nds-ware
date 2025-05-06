@@ -104,7 +104,7 @@ def extract_overlays(overlays: list[Nds.Overlay], output_dir: str) -> None:
     os.makedirs(output_dir, exist_ok=True)
 
     for i, overlay in enumerate(overlays):
-        overlay_code = overlay.data
+        overlay_code = overlay.file.data
         file_name = str(i)
         file_path = os.path.join(output_dir, file_name)
         open(file_path, "wb").write(overlay_code)
