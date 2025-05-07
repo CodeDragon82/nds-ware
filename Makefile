@@ -1,10 +1,9 @@
 PYTHON_PACKAGE=python-package
 PYTHON_PARSERS=$(PYTHON_PACKAGE)/src/ndsware/parsers
 
-JAVA_PACKAGE=java-package
-JAVA_SRC_ROOT=$(JAVA_PACKAGE)/src/com/ndsware
-JAVA_BUILD=$(JAVA_PACKAGE)/build
-JAVA_PARSERS=$(JAVA_SRC_ROOT)/parsers
+JAVA_PACKAGE_NAME=ndsware.parsers
+JAVA_SRC=java-package/src
+JAVA_BUILD=java-package/build
 
 KAITAI_RUNTIME=kaitai-struct-runtime-0.10.jar
 
@@ -17,6 +16,6 @@ python:
 	pip install $(PYTHON_PACKAGE)/.
 
 java:
-	ksc -t java --outdir $(JAVA_PARSERS) definitions/*
-	javac -cp $(KAITAI_RUNTIME) -d $(JAVA_BUILD) $(JAVA_PARSERS)/*.java
+	ksc -t java --java-package $(JAVA_PACKAGE_NAME) --outdir $(JAVA_SRC) definitions/*
+	javac -cp $(KAITAI_RUNTIME) -d $(JAVA_BUILD) $(shell find $(JAVA_SRC) -name "*.java")
 	jar cf $(JAR_NAME) -C $(JAVA_BUILD) .
