@@ -9,7 +9,7 @@ KAITAI_RUNTIME=kaitai-struct-runtime-0.10.jar
 
 JAR_NAME=Ndsware.jar
 
-all: python
+all: python java
 
 python:
 	ksc -t python --outdir $(PYTHON_PARSERS) definitions/*
