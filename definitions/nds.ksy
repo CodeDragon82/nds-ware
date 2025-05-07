@@ -203,7 +203,7 @@ types:
     -webide-representation: '{name}:{directory_id}'
     instances:
       is_directory:
-        value: (flag >> 7).as<bool> # 1st bit
+        value: (flag >> 7) == 1 # 1st bit
       name_length:
         value: flag & 0x7F # last 7 bits
     seq:
@@ -229,15 +229,6 @@ types:
         type: u4
   
   ##### #####
-  
-  string:
-    -webide-representation: '{value}'
-    seq:
-      - id: length
-        type: u1
-      - id: value
-        size: length
-        type: str
   
   ### Overlay Table ###      
   
