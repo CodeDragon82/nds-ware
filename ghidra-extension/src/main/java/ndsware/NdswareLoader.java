@@ -16,7 +16,10 @@
 package ndsware;
 
 import java.io.IOException;
-import java.util.*;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import ghidra.app.util.Option;
 import ghidra.app.util.bin.ByteProvider;
@@ -24,14 +27,22 @@ import ghidra.app.util.importer.MessageLog;
 import ghidra.app.util.opinion.AbstractProgramWrapperLoader;
 import ghidra.app.util.opinion.LoadSpec;
 import ghidra.framework.model.DomainObject;
+import ghidra.program.model.lang.LanguageCompilerSpecPair;
 import ghidra.program.model.listing.Program;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import io.kaitai.struct.ByteBufferKaitaiStream;
+import io.kaitai.struct.KaitaiStream;
+import io.kaitai.struct.KaitaiStream.KaitaiStructError;
+import ndsware.parsers.Nds;
 
 /**
  * Provide class-level documentation that describes what this loader does.
  */
 public class NdswareLoader extends AbstractProgramWrapperLoader {
+
+	private static final LanguageCompilerSpecPair LANGUAGE = new LanguageCompilerSpecPair("ARM:LE:32:v5t:default",
+			"default");
 
 	@Override
 	public String getName() {
@@ -43,8 +54,15 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 	public Collection<LoadSpec> findSupportedLoadSpecs(ByteProvider provider) throws IOException {
 		List<LoadSpec> loadSpecs = new ArrayList<>();
 
-		// Examine the bytes in 'provider' to determine if this loader can load it.  If it 
-		// can load it, return the appropriate load specifications.
+		byte[] bytes = provider.readBytes(0, provider.length());
+		ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+		KaitaiStream kaitaiStream = new ByteBufferKaitaiStream(byteBuffer);
+		try {
+			new Nds(kaitaiStream);
+			loadSpecs.add(new LoadSpec(this, 0, LANGUAGE, true));
+		} catch (KaitaiStructError e) {
+			// ignore
+		}
 
 		return loadSpecs;
 	}
