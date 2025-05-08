@@ -36,9 +36,7 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 	@Override
 	public String getName() {
 
-		// Name the loader.  This name must match the name of the loader in the .opinion files.
-
-		return "My loader";
+		return "Nintendo DS ROM (NDS)";
 	}
 
 	@Override
