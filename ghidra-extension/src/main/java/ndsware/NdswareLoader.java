@@ -50,15 +50,25 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 		return "Nintendo DS ROM (NDS)";
 	}
 
+	/**
+	 * Parses the binary using the NDS Kaitai parser and returns the resulting data
+	 * structure.
+	 */
+	private Nds loadNds(ByteProvider provider) throws KaitaiStructError, IOException {
+		byte[] bytes = provider.readBytes(0, provider.length());
+		ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+		KaitaiStream kaitaiStream = new ByteBufferKaitaiStream(byteBuffer);
+
+		return new Nds(kaitaiStream);
+	}
+
 	@Override
 	public Collection<LoadSpec> findSupportedLoadSpecs(ByteProvider provider) throws IOException {
 		List<LoadSpec> loadSpecs = new ArrayList<>();
 
-		byte[] bytes = provider.readBytes(0, provider.length());
-		ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
-		KaitaiStream kaitaiStream = new ByteBufferKaitaiStream(byteBuffer);
 		try {
-			new Nds(kaitaiStream);
+			loadNds(provider);
+
 			loadSpecs.add(new LoadSpec(this, 0, LANGUAGE, true));
 		} catch (KaitaiStructError e) {
 			// ignore
