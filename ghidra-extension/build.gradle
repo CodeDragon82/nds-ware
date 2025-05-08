@@ -58,8 +58,7 @@ repositories {
 }
 
 dependencies {
-	// Any external dependencies added here will automatically be copied to the lib/ directory when
-	// this extension is built.	
+	implementation files('lib/Ndsware.jar', 'lib/kaitai-struct-runtime-0.10.jar')
 }
 
 // Exclude additional files from the built extension
