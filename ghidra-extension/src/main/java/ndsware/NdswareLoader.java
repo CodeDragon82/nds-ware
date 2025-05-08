@@ -15,7 +15,9 @@
  */
 package ndsware;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,14 +29,22 @@ import ghidra.app.util.importer.MessageLog;
 import ghidra.app.util.opinion.AbstractProgramWrapperLoader;
 import ghidra.app.util.opinion.LoadSpec;
 import ghidra.framework.model.DomainObject;
+import ghidra.framework.store.LockException;
+import ghidra.program.model.address.Address;
+import ghidra.program.model.address.AddressOverflowException;
+import ghidra.program.model.address.AddressSpace;
 import ghidra.program.model.lang.LanguageCompilerSpecPair;
 import ghidra.program.model.listing.Program;
+import ghidra.program.model.mem.Memory;
+import ghidra.program.model.mem.MemoryConflictException;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.KaitaiStream;
 import io.kaitai.struct.KaitaiStream.KaitaiStructError;
 import ndsware.parsers.Nds;
+import ndsware.parsers.Nds.CodeSection;
+import ndsware.parsers.Nds.CodeSectionInfo;
 
 /**
  * Provide class-level documentation that describes what this loader does.
@@ -82,7 +92,22 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 			Program program, TaskMonitor monitor, MessageLog log)
 			throws CancelledException, IOException {
 
-		// Load the bytes from 'provider' into the 'program'.
+		Memory memory = program.getMemory();
+		AddressSpace addressSpace = program.getAddressFactory().getDefaultAddressSpace();
+
+		Nds nds = loadNds(provider);
+		CodeSection arm9 = nds.arm9();
+		CodeSectionInfo arm9Info = arm9.info();
+		Address baseAddress = addressSpace.getAddress(arm9Info.loadAddress());
+		long size = arm9Info.size();
+		InputStream data = new ByteArrayInputStream(arm9.data());
+
+		try {
+			memory.createInitializedBlock("Main Memory", baseAddress, data, size, monitor, false);
+		} catch (LockException | MemoryConflictException | AddressOverflowException | CancelledException
+				| IllegalArgumentException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
