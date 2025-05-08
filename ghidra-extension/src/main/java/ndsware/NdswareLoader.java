@@ -41,7 +41,7 @@ import ndsware.parsers.Nds;
  */
 public class NdswareLoader extends AbstractProgramWrapperLoader {
 
-	private static final LanguageCompilerSpecPair LANGUAGE = new LanguageCompilerSpecPair("ARM:LE:32:v5t:default",
+	private static final LanguageCompilerSpecPair LANGUAGE = new LanguageCompilerSpecPair("ARM:LE:32:v5t",
 			"default");
 
 	@Override
