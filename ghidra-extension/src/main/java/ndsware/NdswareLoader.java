@@ -100,16 +100,16 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 		CodeSection arm9 = nds.arm9();
 		CodeSectionInfo arm9Info = arm9.info();
 		Address baseAddress = addressSpace.getAddress(arm9Info.loadAddress());
-		long size = arm9Info.size();
 		InputStream data = new ByteArrayInputStream(arm9.data());
 
 		try {
-			memory.createInitializedBlock("Main Memory", baseAddress, data, size, monitor, false);
+			memory.createInitializedBlock("Main Memory", baseAddress, data, 0x400000, monitor, false);
 		} catch (LockException | MemoryConflictException | AddressOverflowException | CancelledException
 				| IllegalArgumentException e) {
 			e.printStackTrace();
 		}
 
+		long size;
 		for (Overlay overlay : nds.arm9Overlays()) {
 			baseAddress = addressSpace.getAddress(overlay.info().baseAddress());
 			size = overlay.info().length();
