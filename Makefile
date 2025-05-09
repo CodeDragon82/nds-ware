@@ -5,11 +5,14 @@ JAVA_PACKAGE_NAME=ndsware.parsers
 JAVA_SRC=java-package/src
 JAVA_BUILD=java-package/build
 
-KAITAI_RUNTIME=kaitai-struct-runtime-0.10.jar
+GHIDRA_EXTENSION=ghidra-extension
+GHIDRA_LIB=$(GHIDRA_EXTENSION)/lib
+
+KAITAI_RUNTIME=$(GHIDRA_LIB)/kaitai-struct-runtime-0.10.jar
 
 JAR_NAME=Ndsware.jar
 
-all: python java
+all: python java ghidra
 
 python:
 	ksc -t python --outdir $(PYTHON_PARSERS) definitions/*
@@ -18,4 +21,8 @@ python:
 java:
 	ksc -t java --java-package $(JAVA_PACKAGE_NAME) --outdir $(JAVA_SRC) definitions/*
 	javac -cp $(KAITAI_RUNTIME) -d $(JAVA_BUILD) $(shell find $(JAVA_SRC) -name "*.java")
-	jar cf $(JAR_NAME) -C $(JAVA_BUILD) .
+	jar cf $(GHIDRA_LIB)/$(JAR_NAME) -C $(JAVA_BUILD) .
+
+ghidra: java
+	gradle -p $(GHIDRA_EXTENSION)
+	cp $(GHIDRA_EXTENSION)/dist/* .
