@@ -58,7 +58,7 @@ repositories {
 }
 
 dependencies {
-	implementation files('lib/Ndsware.jar', 'lib/kaitai-struct-runtime-0.10.jar')
+	implementation fileTree(dir: 'lib', include: ['*.jar'])
 }
 
 // Exclude additional files from the built extension
