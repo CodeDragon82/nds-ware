@@ -3,6 +3,7 @@
 /dist/
 /.gradle/
 /.settings/
+/.vscode/
 
 /.classpath
 /.project
