@@ -31,7 +31,6 @@ import ghidra.app.util.opinion.LoadSpec;
 import ghidra.framework.model.DomainObject;
 import ghidra.framework.store.LockException;
 import ghidra.program.model.address.Address;
-import ghidra.program.model.address.AddressOutOfBoundsException;
 import ghidra.program.model.address.AddressOverflowException;
 import ghidra.program.model.address.AddressSpace;
 import ghidra.program.model.lang.LanguageCompilerSpecPair;
@@ -44,8 +43,6 @@ import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.KaitaiStream;
 import io.kaitai.struct.KaitaiStream.KaitaiStructError;
 import ndsware.parsers.Nds;
-import ndsware.parsers.Nds.CodeSection;
-import ndsware.parsers.Nds.CodeSectionInfo;
 import ndsware.parsers.Nds.Overlay;
 
 /**
@@ -89,15 +86,31 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 		return loadSpecs;
 	}
 
-	@Override
-	protected void load(ByteProvider provider, LoadSpec loadSpec, List<Option> options,
-			Program program, TaskMonitor monitor, MessageLog log)
-			throws CancelledException, IOException {
-
+	private void loadMemoryMap(ByteProvider provider, Program program, TaskMonitor monitor) throws LockException,
+			MemoryConflictException, AddressOverflowException, CancelledException, IllegalArgumentException,
+			KaitaiStructError, IOException {
 		Memory memory = program.getMemory();
 		AddressSpace addressSpace = program.getAddressFactory().getDefaultAddressSpace();
 
-		try {
+		// Initilise ARM9 main memory blocks containing the game code.
+		Nds nds = loadNds(provider);
+		InputStream data = new ByteArrayInputStream(nds.arm9().data());
+		memory.createInitializedBlock("Main Memory", addressSpace.getAddress(0x02000000), data, 0x400000, monitor,
+				false);
+
+		// Initilise ARM9 overlay memory blocks.
+		Address baseAddress;
+		long size;
+		for (Overlay overlay : nds.arm9Overlays()) {
+			baseAddress = addressSpace.getAddress(overlay.info().baseAddress());
+			size = overlay.info().length();
+			data = new ByteArrayInputStream(overlay.file().data());
+
+			memory.createInitializedBlock("Overlay" + overlay.info().index(), baseAddress, data, size, monitor,
+					true);
+		}
+
+		// Define uninitilised memory blocks.
 			memory.createUninitializedBlock("Shared WRAM", addressSpace.getAddress(0x03000000), 0x8000, false);
 			memory.createUninitializedBlock("I/O Ports", addressSpace.getAddress(0x04000000), 0x01000000, false);
 			memory.createUninitializedBlock("Standard Palettes", addressSpace.getAddress(0x05000000), 0x800, false);
@@ -115,38 +128,17 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 			memory.createUninitializedBlock("GBA Slot ROM", addressSpace.getAddress(0x08000000), 0x8000, false);
 			memory.createUninitializedBlock("GBA Slot RAM", addressSpace.getAddress(0x0A000000), 0x10000, false);
 			memory.createUninitializedBlock("BIOS", addressSpace.getAddress(0xFFFF0000), 0x8000, false);
+	}
 
-		} catch (LockException | IllegalArgumentException | MemoryConflictException | AddressOverflowException
-				| AddressOutOfBoundsException e) {
-			e.printStackTrace();
-		}
-
-		Nds nds = loadNds(provider);
-		CodeSection arm9 = nds.arm9();
-		CodeSectionInfo arm9Info = arm9.info();
-		Address baseAddress = addressSpace.getAddress(arm9Info.loadAddress());
-		InputStream data = new ByteArrayInputStream(arm9.data());
-
+	@Override
+	protected void load(ByteProvider provider, LoadSpec loadSpec, List<Option> options,
+			Program program, TaskMonitor monitor, MessageLog log)
+			throws CancelledException, IOException {
 		try {
-			memory.createInitializedBlock("Main Memory", baseAddress, data, 0x400000, monitor, false);
+			loadMemoryMap(provider, program, monitor);
 		} catch (LockException | MemoryConflictException | AddressOverflowException | CancelledException
-				| IllegalArgumentException e) {
-			e.printStackTrace();
-		}
-
-		long size;
-		for (Overlay overlay : nds.arm9Overlays()) {
-			baseAddress = addressSpace.getAddress(overlay.info().baseAddress());
-			size = overlay.info().length();
-			data = new ByteArrayInputStream(overlay.file().data());
-
-			try {
-				memory.createInitializedBlock("Overlay" + overlay.info().index(), baseAddress, data, size, monitor,
-						true);
-			} catch (LockException | MemoryConflictException | AddressOverflowException | CancelledException
-					| IllegalArgumentException e) {
-				e.printStackTrace();
-			}
+				| IllegalArgumentException | KaitaiStructError | IOException e) {
+			throw new CancelledException("Failed to load memory map! " + e.getMessage());
 		}
 	}
 
