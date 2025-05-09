@@ -45,6 +45,7 @@ import io.kaitai.struct.KaitaiStream.KaitaiStructError;
 import ndsware.parsers.Nds;
 import ndsware.parsers.Nds.CodeSection;
 import ndsware.parsers.Nds.CodeSectionInfo;
+import ndsware.parsers.Nds.Overlay;
 
 /**
  * Provide class-level documentation that describes what this loader does.
@@ -107,6 +108,20 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 		} catch (LockException | MemoryConflictException | AddressOverflowException | CancelledException
 				| IllegalArgumentException e) {
 			e.printStackTrace();
+		}
+
+		for (Overlay overlay : nds.arm9Overlays()) {
+			baseAddress = addressSpace.getAddress(overlay.info().baseAddress());
+			size = overlay.info().length();
+			data = new ByteArrayInputStream(overlay.file().data());
+
+			try {
+				memory.createInitializedBlock("Overlay" + overlay.info().index(), baseAddress, data, size, monitor,
+						true);
+			} catch (LockException | MemoryConflictException | AddressOverflowException | CancelledException
+					| IllegalArgumentException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
