@@ -31,6 +31,7 @@ import ghidra.app.util.opinion.LoadSpec;
 import ghidra.framework.model.DomainObject;
 import ghidra.framework.store.LockException;
 import ghidra.program.model.address.Address;
+import ghidra.program.model.address.AddressOutOfBoundsException;
 import ghidra.program.model.address.AddressOverflowException;
 import ghidra.program.model.address.AddressSpace;
 import ghidra.program.model.lang.LanguageCompilerSpecPair;
@@ -95,6 +96,30 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 
 		Memory memory = program.getMemory();
 		AddressSpace addressSpace = program.getAddressFactory().getDefaultAddressSpace();
+
+		try {
+			memory.createUninitializedBlock("Shared WRAM", addressSpace.getAddress(0x03000000), 0x8000, false);
+			memory.createUninitializedBlock("I/O Ports", addressSpace.getAddress(0x04000000), 0x01000000, false);
+			memory.createUninitializedBlock("Standard Palettes", addressSpace.getAddress(0x05000000), 0x800, false);
+			memory.createUninitializedBlock("VRAM - Engine A, BG VRAM", addressSpace.getAddress(0x06000000), 0x80000,
+					false);
+			memory.createUninitializedBlock("VRAM - Engine B, BG VRAM", addressSpace.getAddress(0x06200000), 0x20000,
+					false);
+			memory.createUninitializedBlock("VRAM - Engine A, OBJ VRAM", addressSpace.getAddress(0x06400000), 0x40000,
+					false);
+			memory.createUninitializedBlock("VRAM - Engine B, OBJ VRAM", addressSpace.getAddress(0x06600000), 0x20000,
+					false);
+			memory.createUninitializedBlock("VRAM - \"LCDC\"-allocated", addressSpace.getAddress(0x06800000), 0xA4000,
+					false);
+			memory.createUninitializedBlock("OAM", addressSpace.getAddress(0x07000000), 0x800, false);
+			memory.createUninitializedBlock("GBA Slot ROM", addressSpace.getAddress(0x08000000), 0x8000, false);
+			memory.createUninitializedBlock("GBA Slot RAM", addressSpace.getAddress(0x0A000000), 0x10000, false);
+			memory.createUninitializedBlock("BIOS", addressSpace.getAddress(0xFFFF0000), 0x8000, false);
+
+		} catch (LockException | IllegalArgumentException | MemoryConflictException | AddressOverflowException
+				| AddressOutOfBoundsException e) {
+			e.printStackTrace();
+		}
 
 		Nds nds = loadNds(provider);
 		CodeSection arm9 = nds.arm9();
