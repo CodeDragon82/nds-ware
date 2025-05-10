@@ -2,12 +2,38 @@ name: Release
 
 on:
   push:
-    branches:
-      - feature/ci-release-pipeline
     tags:
-      - '*'
+      - 'v*'
 
 jobs:
+  build-ghidra-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 23
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Install Kaitai Compiler
+        run: |
+          set -x
+          curl -LO https://github.com/kaitai-io/kaitai_struct_compiler/releases/download/0.10/kaitai-struct-compiler_0.10_all.deb
+          sudo apt install ./kaitai-struct-compiler_0.10_all.deb
+      - name: Download Ghidra
+        run: |
+          set -x
+          wget https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.3.2_build/ghidra_11.3.2_PUBLIC_20250415.zip -O ghidra.zip
+          unzip ghidra.zip
+          mv ghidra_* ghidra
+      - name: Set Ghidra Path
+        run: echo "GHIDRA_INSTALL_DIR=$(pwd)/ghidra" >> $GITHUB_ENV
+      - name: Build Ghidra Extension
+        run: make ghidra
+
   release:
     runs-on: ubuntu-latest
     steps:
