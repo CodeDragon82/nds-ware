@@ -33,6 +33,11 @@ jobs:
         run: echo "GHIDRA_INSTALL_DIR=$(pwd)/ghidra" >> $GITHUB_ENV
       - name: Build Ghidra Extension
         run: make ghidra
+      - name: Upload Ghidra Extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-ghidra-extension
+          path: ghidra_*_ghidra-extension.zip
 
   build-python-package:
     runs-on: ubuntu-latest
@@ -46,15 +51,30 @@ jobs:
           sudo apt install ./kaitai-struct-compiler_0.10_all.deb
       - name: Build Python Package
         run: make python
+      - name: Upload Python Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-python-package
+          path: ndsware*.whl
 
   release:
     needs: [build-ghidra-extension, build-python-package]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Download Ghidra Extension
+        uses: actions/download-artifact@v4
+        with:
+          name: built-ghidra-extension
+      - name: Download Python Package
+        uses: actions/download-artifact@v4
+        with:
+          name: built-python-package
       - name: Release
         uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.whl
+            *.zip
 
 permissions:
   contents: write
