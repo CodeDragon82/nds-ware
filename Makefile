@@ -16,7 +16,7 @@ all: python java ghidra
 
 python:
 	ksc -t python --outdir $(PYTHON_PARSERS) definitions/*
-	pip install $(PYTHON_PACKAGE)/.
+	pip wheel $(PYTHON_PACKAGE)/. --no-deps
 
 java:
 	ksc -t java --java-package $(JAVA_PACKAGE_NAME) --outdir $(JAVA_SRC) definitions/*

@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-ghidra-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 23
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Install Kaitai Compiler
+        run: |
+          set -x
+          curl -LO https://github.com/kaitai-io/kaitai_struct_compiler/releases/download/0.10/kaitai-struct-compiler_0.10_all.deb
+          sudo apt install ./kaitai-struct-compiler_0.10_all.deb
+      - name: Download Ghidra
+        run: |
+          set -x
+          wget https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.3.2_build/ghidra_11.3.2_PUBLIC_20250415.zip -O ghidra.zip
+          unzip ghidra.zip
+          mv ghidra_* ghidra
+      - name: Set Ghidra Path
+        run: echo "GHIDRA_INSTALL_DIR=$(pwd)/ghidra" >> $GITHUB_ENV
+      - name: Build Ghidra Extension
+        run: make ghidra
+      - name: Upload Ghidra Extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-ghidra-extension
+          path: ghidra_*_ghidra-extension.zip
+
+  build-python-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Kaitai Compiler
+        run: |
+          set -x
+          curl -LO https://github.com/kaitai-io/kaitai_struct_compiler/releases/download/0.10/kaitai-struct-compiler_0.10_all.deb
+          sudo apt install ./kaitai-struct-compiler_0.10_all.deb
+      - name: Build Python Package
+        run: make python
+      - name: Upload Python Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-python-package
+          path: ndsware*.whl
+
+  release:
+    needs: [build-ghidra-extension, build-python-package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download Ghidra Extension
+        uses: actions/download-artifact@v4
+        with:
+          name: built-ghidra-extension
+      - name: Download Python Package
+        uses: actions/download-artifact@v4
+        with:
+          name: built-python-package
+      - name: Extract changelog for current tag
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          validation_level: warn
+          version: ${{ steps.tag_name.outputs.current_version }}
+          path: ./CHANGELOG.md
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.changelog_reader.outputs.changes }}
+          files: |
+            *.whl
+            *.zip
+
+permissions:
+  contents: write
