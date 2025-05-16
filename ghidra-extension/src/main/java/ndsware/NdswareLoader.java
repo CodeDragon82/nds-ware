@@ -105,7 +105,7 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 		mainMemoryBlock.setWrite(true);
 		mainMemoryBlock.setExecute(true);
 
-		// Initilise ARM9 overlay memory blocks.
+		// Initialise ARM9 overlay memory blocks.
 		Address baseAddress;
 		long size;
 		for (Overlay overlay : nds.arm9Overlays()) {
@@ -121,24 +121,24 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 			overlayMemoryBlock.setExecute(true);
 		}
 
-		// Define uninitilised memory blocks.
-			memory.createUninitializedBlock("Shared WRAM", addressSpace.getAddress(0x03000000), 0x8000, false);
-			memory.createUninitializedBlock("I/O Ports", addressSpace.getAddress(0x04000000), 0x01000000, false);
-			memory.createUninitializedBlock("Standard Palettes", addressSpace.getAddress(0x05000000), 0x800, false);
-			memory.createUninitializedBlock("VRAM - Engine A, BG VRAM", addressSpace.getAddress(0x06000000), 0x80000,
-					false);
-			memory.createUninitializedBlock("VRAM - Engine B, BG VRAM", addressSpace.getAddress(0x06200000), 0x20000,
-					false);
-			memory.createUninitializedBlock("VRAM - Engine A, OBJ VRAM", addressSpace.getAddress(0x06400000), 0x40000,
-					false);
-			memory.createUninitializedBlock("VRAM - Engine B, OBJ VRAM", addressSpace.getAddress(0x06600000), 0x20000,
-					false);
-			memory.createUninitializedBlock("VRAM - \"LCDC\"-allocated", addressSpace.getAddress(0x06800000), 0xA4000,
-					false);
-			memory.createUninitializedBlock("OAM", addressSpace.getAddress(0x07000000), 0x800, false);
-			memory.createUninitializedBlock("GBA Slot ROM", addressSpace.getAddress(0x08000000), 0x8000, false);
-			memory.createUninitializedBlock("GBA Slot RAM", addressSpace.getAddress(0x0A000000), 0x10000, false);
-			memory.createUninitializedBlock("BIOS", addressSpace.getAddress(0xFFFF0000), 0x8000, false);
+		// Define uninitialised memory blocks.
+		memory.createUninitializedBlock("Shared WRAM", addressSpace.getAddress(0x03000000), 0x8000, false);
+		memory.createUninitializedBlock("I/O Ports", addressSpace.getAddress(0x04000000), 0x01000000, false);
+		memory.createUninitializedBlock("Standard Palettes", addressSpace.getAddress(0x05000000), 0x800, false);
+		memory.createUninitializedBlock("VRAM - Engine A, BG VRAM", addressSpace.getAddress(0x06000000), 0x80000,
+				false);
+		memory.createUninitializedBlock("VRAM - Engine B, BG VRAM", addressSpace.getAddress(0x06200000), 0x20000,
+				false);
+		memory.createUninitializedBlock("VRAM - Engine A, OBJ VRAM", addressSpace.getAddress(0x06400000), 0x40000,
+				false);
+		memory.createUninitializedBlock("VRAM - Engine B, OBJ VRAM", addressSpace.getAddress(0x06600000), 0x20000,
+				false);
+		memory.createUninitializedBlock("VRAM - \"LCDC\"-allocated", addressSpace.getAddress(0x06800000), 0xA4000,
+				false);
+		memory.createUninitializedBlock("OAM", addressSpace.getAddress(0x07000000), 0x800, false);
+		memory.createUninitializedBlock("GBA Slot ROM", addressSpace.getAddress(0x08000000), 0x8000, false);
+		memory.createUninitializedBlock("GBA Slot RAM", addressSpace.getAddress(0x0A000000), 0x10000, false);
+		memory.createUninitializedBlock("BIOS", addressSpace.getAddress(0xFFFF0000), 0x8000, false);
 	}
 
 	@Override
@@ -156,8 +156,7 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 	@Override
 	public List<Option> getDefaultOptions(ByteProvider provider, LoadSpec loadSpec,
 			DomainObject domainObject, boolean isLoadIntoProgram) {
-		List<Option> list =
-			super.getDefaultOptions(provider, loadSpec, domainObject, isLoadIntoProgram);
+		List<Option> list = super.getDefaultOptions(provider, loadSpec, domainObject, isLoadIntoProgram);
 
 		// If this loader has custom options, add them to 'list'
 		list.add(new Option("Option name goes here", "Default option value goes here"));
@@ -168,7 +167,8 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 	@Override
 	public String validateOptions(ByteProvider provider, LoadSpec loadSpec, List<Option> options, Program program) {
 
-		// If this loader has custom options, validate them here.  Not all options require
+		// If this loader has custom options, validate them here. Not all options
+		// require
 		// validation.
 
 		return super.validateOptions(provider, loadSpec, options, program);
