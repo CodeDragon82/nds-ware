@@ -36,6 +36,7 @@ import ghidra.program.model.address.AddressSpace;
 import ghidra.program.model.lang.LanguageCompilerSpecPair;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.mem.Memory;
+import ghidra.program.model.mem.MemoryBlock;
 import ghidra.program.model.mem.MemoryConflictException;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
@@ -95,8 +96,14 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 		// Initilise ARM9 main memory blocks containing the game code.
 		Nds nds = loadNds(provider);
 		InputStream data = new ByteArrayInputStream(nds.arm9().data());
-		memory.createInitializedBlock("Main Memory", addressSpace.getAddress(0x02000000), data, 0x400000, monitor,
+		MemoryBlock mainMemoryBlock = memory.createInitializedBlock("Main Memory", addressSpace.getAddress(0x02000000),
+				data,
+				0x400000, monitor,
 				false);
+
+		// Set main memory block permissions to 'rwx'.
+		mainMemoryBlock.setWrite(true);
+		mainMemoryBlock.setExecute(true);
 
 		// Initilise ARM9 overlay memory blocks.
 		Address baseAddress;
@@ -106,8 +113,12 @@ public class NdswareLoader extends AbstractProgramWrapperLoader {
 			size = overlay.info().length();
 			data = new ByteArrayInputStream(overlay.file().data());
 
-			memory.createInitializedBlock("Overlay" + overlay.info().index(), baseAddress, data, size, monitor,
-					true);
+			MemoryBlock overlayMemoryBlock = memory.createInitializedBlock("Overlay" + overlay.info().index(),
+					baseAddress, data, size, monitor, true);
+
+			// Set overlay memory block permissions to 'rwx'.
+			overlayMemoryBlock.setWrite(true);
+			overlayMemoryBlock.setExecute(true);
 		}
 
 		// Define uninitilised memory blocks.
