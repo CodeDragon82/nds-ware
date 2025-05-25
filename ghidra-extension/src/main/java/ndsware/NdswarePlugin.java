@@ -46,7 +46,6 @@ public class NdswarePlugin extends ProgramPlugin {
 	public NdswarePlugin(PluginTool tool) {
 		super(tool);
 
-		// Customize provider (or remove if a provider is not desired)
 		String pluginName = getName();
 		ndsFileSystemProvider = new NdsFileSystemProvider(this, pluginName);
 	}
