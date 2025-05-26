@@ -15,12 +15,16 @@
  */
 package ndsware;
 
+import java.io.IOException;
+
 import ghidra.app.ExamplesPluginPackage;
 import ghidra.app.plugin.PluginCategoryNames;
 import ghidra.app.plugin.ProgramPlugin;
 import ghidra.framework.plugintool.PluginInfo;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
+import ghidra.program.model.listing.Program;
+import ndsware.parsers.Nds;
 
 /**
  * Provide class-level documentation that describes what this plugin does.
@@ -55,5 +59,17 @@ public class NdswarePlugin extends ProgramPlugin {
 		super.init();
 
 		// Acquire services if necessary
+	}
+
+	@Override
+	protected void programActivated(Program program) {
+		String ndsPath = program.getExecutablePath();
+		try {
+			Nds nds = Nds.fromFile(ndsPath);
+			ndsFileSystemProvider.updateTree(nds);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 }
