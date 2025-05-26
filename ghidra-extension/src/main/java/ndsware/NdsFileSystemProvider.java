@@ -14,6 +14,10 @@ import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
 import ghidra.framework.plugintool.Plugin;
+import ndsware.parsers.Nds;
+import ndsware.parsers.Nds.Directory;
+import ndsware.parsers.Nds.FileEntry;
+import ndsware.parsers.Nds.FileNameTable;
 
 public class NdsFileSystemProvider extends ComponentProvider {
 
@@ -42,6 +46,32 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
         panel.add(new JScrollPane(tree), BorderLayout.CENTER);
         setVisible(true);
+    }
+
+    public void updateTree(Nds nds) {
+        Directory rootDirectory = nds.fileNameTable().directories().get(0);
+
+        loadDirectory(nds.fileNameTable(), rootDirectory, treeRoot);
+
+        treeModel.reload(treeRoot);
+    }
+
+    private void loadDirectory(FileNameTable fileNameTable, Directory directory, DefaultMutableTreeNode directoryNode) {
+
+        // The last entry in a directory is always empty.
+        directory.files().removeLast();
+
+        for (FileEntry fileEntry : directory.files()) {
+            DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(fileEntry.name());
+
+            if (fileEntry.isDirectory()) {
+                int next_directory_index = fileEntry.directoryId() & 0xFFF;
+                Directory next_directory = fileNameTable.directories().get(next_directory_index);
+                loadDirectory(fileNameTable, next_directory, fileNode);
+            }
+
+            directoryNode.add(fileNode);
+        }
     }
 
     private void createMenuAction() {
