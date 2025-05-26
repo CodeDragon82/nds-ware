@@ -49,6 +49,8 @@ public class NdsFileSystemProvider extends ComponentProvider {
     }
 
     public void updateTree(Nds nds) {
+        treeRoot.removeAllChildren();
+
         Directory rootDirectory = nds.fileNameTable().directories().get(0);
 
         loadDirectory(nds.fileNameTable(), rootDirectory, treeRoot);
