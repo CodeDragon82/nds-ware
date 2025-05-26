@@ -3,6 +3,7 @@ package ndsware;
 import java.awt.BorderLayout;
 
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
@@ -23,8 +24,10 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
     private static String MENU_NAME = "NDS";
     private static String MENU_OPTION = "Show Files";
+    private static String ERROR_MESSAGE = "Failed to parse the NDS file system: ";
 
     private JPanel panel;
+    private JLabel errorLabel;
     private JTree tree;
     private DefaultTreeModel treeModel;
     private DefaultMutableTreeNode treeRoot;
@@ -44,16 +47,28 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
         tree.setRootVisible(false);
 
-        panel.add(new JScrollPane(tree), BorderLayout.CENTER);
+        JScrollPane treeScrollPane = new JScrollPane(tree);
+        errorLabel = new JLabel();
+
+        panel.add(errorLabel, BorderLayout.NORTH);
+        panel.add(treeScrollPane, BorderLayout.CENTER);
+
         setVisible(true);
     }
 
-    public void updateTree(Nds nds) {
+    public void updateTree(String ndsPath) {
+        errorLabel.setText("");
         treeRoot.removeAllChildren();
 
-        Directory rootDirectory = nds.fileNameTable().directories().get(0);
+        try {
+            Nds nds = Nds.fromFile(ndsPath);
 
-        loadDirectory(nds.fileNameTable(), rootDirectory, treeRoot);
+            Directory rootDirectory = nds.fileNameTable().directories().get(0);
+
+            loadDirectory(nds.fileNameTable(), rootDirectory, treeRoot);
+        } catch (Exception e) {
+            errorLabel.setText(ERROR_MESSAGE + ndsPath);
+        }
 
         treeModel.reload(treeRoot);
     }
