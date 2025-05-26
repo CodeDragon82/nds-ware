@@ -5,7 +5,9 @@ import java.awt.BorderLayout;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javax.swing.JTree;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 
 import docking.ActionContext;
 import docking.ComponentProvider;
@@ -19,6 +21,9 @@ public class NdsFileSystemProvider extends ComponentProvider {
     private static String MENU_OPTION = "Show Files";
 
     private JPanel panel;
+    private JTree tree;
+    private DefaultTreeModel treeModel;
+    private DefaultMutableTreeNode treeRoot;
 
     public NdsFileSystemProvider(Plugin plugin, String owner) {
         super(plugin.getTool(), "NDS Files", owner);
@@ -26,12 +31,16 @@ public class NdsFileSystemProvider extends ComponentProvider {
         createMenuAction();
     }
 
-    // Customize GUI
     private void buildPanel() {
         panel = new JPanel(new BorderLayout());
-        JTextArea textArea = new JTextArea(5, 25);
-        textArea.setEditable(false);
-        panel.add(new JScrollPane(textArea));
+
+        treeRoot = new DefaultMutableTreeNode("Root");
+        treeModel = new DefaultTreeModel(treeRoot);
+        tree = new JTree(treeModel);
+
+        tree.setRootVisible(false);
+
+        panel.add(new JScrollPane(tree), BorderLayout.CENTER);
         setVisible(true);
     }
 
