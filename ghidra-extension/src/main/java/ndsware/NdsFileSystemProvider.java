@@ -32,6 +32,8 @@ public class NdsFileSystemProvider extends ComponentProvider {
     private DefaultTreeModel treeModel;
     private DefaultMutableTreeNode treeRoot;
 
+    private int fileIndex;
+
     public NdsFileSystemProvider(Plugin plugin, String owner) {
         super(plugin.getTool(), "NDS Files", owner);
         buildPanel();
@@ -65,7 +67,9 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
             Directory rootDirectory = nds.fileNameTable().directories().get(0);
 
-            loadDirectory(nds.fileNameTable(), rootDirectory, treeRoot);
+            fileIndex = nds.fileAllocationTable().size() - 1;
+
+            loadDirectory(nds.fileNameTable(), nds.fileAllocationTable(), rootDirectory, treeRoot);
         } catch (Exception e) {
             errorLabel.setText(ERROR_MESSAGE + ndsPath);
         }
@@ -73,18 +77,23 @@ public class NdsFileSystemProvider extends ComponentProvider {
         treeModel.reload(treeRoot);
     }
 
-    private void loadDirectory(FileNameTable fileNameTable, Directory directory, DefaultMutableTreeNode directoryNode) {
+    private void loadDirectory(FileNameTable fileNameTable, ArrayList<FatEntry> fileAllocationTable,
+            Directory directory, DefaultMutableTreeNode directoryNode) {
 
-        // The last entry in a directory is always empty.
-        directory.files().removeLast();
-
-        for (FileEntry fileEntry : directory.files()) {
+        for (int i = directory.files().size() - 2; i >= 0; i--) {
+            FileEntry fileEntry = directory.files().get(i);
             DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(fileEntry.name());
 
             if (fileEntry.isDirectory()) {
                 int next_directory_index = fileEntry.directoryId() & 0xFFF;
                 Directory next_directory = fileNameTable.directories().get(next_directory_index);
-                loadDirectory(fileNameTable, next_directory, fileNode);
+                loadDirectory(fileNameTable, fileAllocationTable, next_directory, fileNode);
+            } else {
+                long start = fileAllocationTable.get(fileIndex).startOffset();
+                long end = fileAllocationTable.get(fileIndex).endOffset();
+                long size = end - start;
+                fileNode = new DefaultMutableTreeNode(fileEntry.name() + " - " + size + "B");
+                fileIndex -= 1;
             }
 
             directoryNode.add(fileNode);
