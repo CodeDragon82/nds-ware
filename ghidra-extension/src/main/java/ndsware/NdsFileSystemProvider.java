@@ -1,6 +1,7 @@
 package ndsware;
 
 import java.awt.BorderLayout;
+import java.util.ArrayList;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -17,10 +18,42 @@ import docking.action.MenuData;
 import ghidra.framework.plugintool.Plugin;
 import ndsware.parsers.Nds;
 import ndsware.parsers.Nds.Directory;
+import ndsware.parsers.Nds.File;
 import ndsware.parsers.Nds.FileEntry;
 import ndsware.parsers.Nds.FileNameTable;
 
 public class NdsFileSystemProvider extends ComponentProvider {
+
+    private class FileNode extends DefaultMutableTreeNode {
+        private File file;
+
+        public FileNode(String name) {
+            super(name);
+            this.file = null;
+        }
+
+        public void setFile(File file) {
+            this.file = file;
+        }
+
+        private long getFileSize() {
+            long start = file.info().startOffset();
+            long end = file.info().endOffset();
+
+            return end - start;
+        }
+
+        @Override
+        public String toString() {
+            String fileString = getUserObject().toString();
+
+            if (file != null) {
+                fileString += " - " + getFileSize() + "B";
+            }
+
+            return fileString;
+        }
+    }
 
     private static String MENU_NAME = "NDS";
     private static String MENU_OPTION = "Show Files";
@@ -69,7 +102,7 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
             fileIndex = nds.fileAllocationTable().size() - 1;
 
-            loadDirectory(nds.fileNameTable(), nds.fileAllocationTable(), rootDirectory, treeRoot);
+            loadDirectory(nds.fileNameTable(), nds.files(), rootDirectory, treeRoot);
         } catch (Exception e) {
             errorLabel.setText(ERROR_MESSAGE + ndsPath);
         }
@@ -77,22 +110,19 @@ public class NdsFileSystemProvider extends ComponentProvider {
         treeModel.reload(treeRoot);
     }
 
-    private void loadDirectory(FileNameTable fileNameTable, ArrayList<FatEntry> fileAllocationTable,
+    private void loadDirectory(FileNameTable fileNameTable, ArrayList<File> files,
             Directory directory, DefaultMutableTreeNode directoryNode) {
 
         for (int i = directory.files().size() - 2; i >= 0; i--) {
             FileEntry fileEntry = directory.files().get(i);
-            DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(fileEntry.name());
+            FileNode fileNode = new FileNode(fileEntry.name());
 
             if (fileEntry.isDirectory()) {
                 int next_directory_index = fileEntry.directoryId() & 0xFFF;
                 Directory next_directory = fileNameTable.directories().get(next_directory_index);
-                loadDirectory(fileNameTable, fileAllocationTable, next_directory, fileNode);
+                loadDirectory(fileNameTable, files, next_directory, fileNode);
             } else {
-                long start = fileAllocationTable.get(fileIndex).startOffset();
-                long end = fileAllocationTable.get(fileIndex).endOffset();
-                long size = end - start;
-                fileNode = new DefaultMutableTreeNode(fileEntry.name() + " - " + size + "B");
+                fileNode.setFile(files.get(fileIndex));
                 fileIndex -= 1;
             }
 
