@@ -3,18 +3,17 @@ package ndsware;
 import java.awt.BorderLayout;
 import java.util.ArrayList;
 
+import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTree;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
 
 import docking.ActionContext;
 import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
+import docking.widgets.tree.GTree;
+import docking.widgets.tree.GTreeNode;
 import ghidra.framework.plugintool.Plugin;
 import ndsware.parsers.Nds;
 import ndsware.parsers.Nds.Directory;
@@ -24,11 +23,12 @@ import ndsware.parsers.Nds.FileNameTable;
 
 public class NdsFileSystemProvider extends ComponentProvider {
 
-    private class FileNode extends DefaultMutableTreeNode {
+    private class FileNode extends GTreeNode {
+        private String name;
         private File file;
 
         public FileNode(String name) {
-            super(name);
+            this.name = name;
             this.file = null;
         }
 
@@ -44,14 +44,29 @@ public class NdsFileSystemProvider extends ComponentProvider {
         }
 
         @Override
-        public String toString() {
-            String fileString = getUserObject().toString();
+        public Icon getIcon(boolean arg0) {
+            return null;
+        }
+
+        @Override
+        public String getName() {
+            String fileString = this.name;
 
             if (file != null) {
                 fileString += " - " + getFileSize() + "B";
             }
 
             return fileString;
+        }
+
+        @Override
+        public String getToolTip() {
+            return null;
+        }
+
+        @Override
+        public boolean isLeaf() {
+            return file != null;
         }
     }
 
@@ -61,14 +76,13 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
     private JPanel panel;
     private JLabel errorLabel;
-    private JTree tree;
-    private DefaultTreeModel treeModel;
-    private DefaultMutableTreeNode treeRoot;
+    private GTree tree;
+    private FileNode treeRoot;
 
     private int fileIndex;
 
     public NdsFileSystemProvider(Plugin plugin, String owner) {
-        super(plugin.getTool(), "NDS Files", owner);
+        super(plugin.getTool(), "NDS File System", owner);
         buildPanel();
         createMenuAction();
     }
@@ -76,24 +90,22 @@ public class NdsFileSystemProvider extends ComponentProvider {
     private void buildPanel() {
         panel = new JPanel(new BorderLayout());
 
-        treeRoot = new DefaultMutableTreeNode("Root");
-        treeModel = new DefaultTreeModel(treeRoot);
-        tree = new JTree(treeModel);
+        treeRoot = new FileNode("Root");
+        tree = new GTree(treeRoot);
 
         tree.setRootVisible(false);
 
-        JScrollPane treeScrollPane = new JScrollPane(tree);
         errorLabel = new JLabel();
 
         panel.add(errorLabel, BorderLayout.NORTH);
-        panel.add(treeScrollPane, BorderLayout.CENTER);
+        panel.add(tree, BorderLayout.CENTER);
 
         setVisible(true);
     }
 
     public void updateTree(String ndsPath) {
         errorLabel.setText("");
-        treeRoot.removeAllChildren();
+        treeRoot.removeAll();
 
         try {
             Nds nds = Nds.fromFile(ndsPath);
@@ -104,14 +116,12 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
             loadDirectory(nds.fileNameTable(), nds.files(), rootDirectory, treeRoot);
         } catch (Exception e) {
-            errorLabel.setText(ERROR_MESSAGE + ndsPath);
+            errorLabel.setText(ERROR_MESSAGE + ndsPath + "\n" + e.getMessage());
         }
-
-        treeModel.reload(treeRoot);
     }
 
     private void loadDirectory(FileNameTable fileNameTable, ArrayList<File> files,
-            Directory directory, DefaultMutableTreeNode directoryNode) {
+            Directory directory, FileNode directoryNode) {
 
         for (int i = directory.files().size() - 2; i >= 0; i--) {
             FileEntry fileEntry = directory.files().get(i);
@@ -126,7 +136,7 @@ public class NdsFileSystemProvider extends ComponentProvider {
                 fileIndex -= 1;
             }
 
-            directoryNode.add(fileNode);
+            directoryNode.addNode(fileNode);
         }
     }
 
