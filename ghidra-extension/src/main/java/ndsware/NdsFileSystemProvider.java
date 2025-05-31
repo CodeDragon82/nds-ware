@@ -7,6 +7,7 @@ import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSplitPane;
 
 import docking.ActionContext;
 import docking.ComponentProvider;
@@ -78,6 +79,7 @@ public class NdsFileSystemProvider extends ComponentProvider {
     private JLabel errorLabel;
     private GTree tree;
     private FileNode treeRoot;
+    private FileDataPanel fileDataPanel;
 
     private int fileIndex;
 
@@ -92,13 +94,21 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
         treeRoot = new FileNode("Root");
         tree = new GTree(treeRoot);
-
         tree.setRootVisible(false);
+        tree.addGTreeSelectionListener(e -> {
+            FileNode fileNode = (FileNode) e.getNewLeadSelectionPath().getLastPathComponent();
+            if (fileNode != null && fileNode.isLeaf()) {
+                fileDataPanel.update(fileNode.name, fileNode.file.data());
+            }
+        });
 
         errorLabel = new JLabel();
+        fileDataPanel = new FileDataPanel();
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tree, fileDataPanel);
 
         panel.add(errorLabel, BorderLayout.NORTH);
-        panel.add(tree, BorderLayout.CENTER);
+        panel.add(splitPane, BorderLayout.CENTER);
 
         setVisible(true);
     }
