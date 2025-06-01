@@ -6,21 +6,20 @@ import java.util.Arrays;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumnModel;
+
+import docking.widgets.table.GFilterTable;
 
 public class FileDataPanel extends JPanel {
 
     private static final Font FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-    private static final int ROM_HEIGHT = 20;
-    private static final String[] COLUMN_NAMES = { "Address", "Hex", "ASCII" };
     private static final int[] PREFERRED_COLUMN_WIDTHS = { 100, 350, 150 };
     private static final int ROW_BYTE_LENGTH = 16;
 
     private JLabel titleLabel;
-    private JTable dataTable;
-    private DefaultTableModel dataTableModel;
+    private FileDataTableModel tableModel;
+    private GFilterTable<FileDataRow> filterTable;
 
     public FileDataPanel() {
         setLayout(new BorderLayout());
@@ -28,25 +27,20 @@ public class FileDataPanel extends JPanel {
         titleLabel = new JLabel("no file selected");
         add(titleLabel, BorderLayout.NORTH);
 
-        dataTableModel = new DefaultTableModel(COLUMN_NAMES, 0) {
-            public boolean isCellEditable(int row, int col) {
-                return false;
-            }
-        };
+        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer();
+        cellRenderer.setFont(FONT);
 
-        dataTable = new JTable(dataTableModel);
-        dataTable.setFillsViewportHeight(true);
-        dataTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        tableModel = new FileDataTableModel();
+        filterTable = new GFilterTable<FileDataRow>(tableModel);
+        filterTable.getTable().setFont(FONT);
 
-        dataTable.setFont(FONT);
-        dataTable.setRowHeight(ROM_HEIGHT);
-
-        for (int i = 0; i < PREFERRED_COLUMN_WIDTHS.length; i++) {
-            dataTable.getColumnModel().getColumn(i).setPreferredWidth(PREFERRED_COLUMN_WIDTHS[i]);
+        TableColumnModel columnModel = filterTable.getTable().getColumnModel();
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            columnModel.getColumn(i).setPreferredWidth(PREFERRED_COLUMN_WIDTHS[i]);
+            columnModel.getColumn(i).setCellRenderer(cellRenderer);
         }
 
-        JScrollPane scrollPane = new JScrollPane(dataTable);
-        add(scrollPane, BorderLayout.CENTER);
+        add(filterTable, BorderLayout.CENTER);
     }
 
     public void update(String filePath, byte[] data) {
@@ -55,7 +49,7 @@ public class FileDataPanel extends JPanel {
     }
 
     private void populateTable(byte[] data) {
-        dataTableModel.setRowCount(0);
+        tableModel.clear();
 
         int rows = (int) Math.ceil(data.length / (double) ROW_BYTE_LENGTH);
         for (int row = 0; row < rows; row++) {
@@ -65,6 +59,8 @@ public class FileDataPanel extends JPanel {
 
             populateRow(rowStart, rowData);
         }
+
+        tableModel.fireTableDataChanged();
     }
 
     private void populateRow(int offset, byte[] rowData) {
@@ -78,6 +74,8 @@ public class FileDataPanel extends JPanel {
             ascii.append((b >= 32 && b < 127) ? (char) b : '.');
         }
 
-        dataTableModel.addRow(new Object[] { address, hex.toString().trim(), ascii.toString() });
+        FileDataRow newRow = new FileDataRow(address, hex.toString().trim(), ascii.toString());
+
+        tableModel.addRow(newRow);
     }
 }
