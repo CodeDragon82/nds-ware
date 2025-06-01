@@ -48,6 +48,12 @@ public class FileDataPanel extends JPanel {
         populateTable(data);
     }
 
+    public void clear() {
+        titleLabel.setText("no file selected");
+        tableModel.clear();
+        tableModel.fireTableDataChanged();
+    }
+
     private void populateTable(byte[] data) {
         tableModel.clear();
 

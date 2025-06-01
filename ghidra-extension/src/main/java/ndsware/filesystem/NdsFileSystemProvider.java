@@ -70,8 +70,9 @@ public class NdsFileSystemProvider extends ComponentProvider {
         setVisible(true);
     }
 
-    public void updateTree(String ndsPath) {
+    public void update(String ndsPath) {
         errorLabel.setText("");
+        fileDataPanel.clear();
         treeRoot.removeAll();
 
         try {

@@ -63,6 +63,6 @@ public class NdswarePlugin extends ProgramPlugin {
 	protected void programActivated(Program program) {
 		String ndsPath = program.getExecutablePath();
 
-		ndsFileSystemProvider.updateTree(ndsPath);
+		ndsFileSystemProvider.update(ndsPath);
 	}
 }
