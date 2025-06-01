@@ -13,7 +13,7 @@ import docking.widgets.table.GFilterTable;
 
 public class FileDataPanel extends JPanel {
 
-    private static final Font FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+    private static final Font FONT = new Font(Font.MONOSPACED, Font.PLAIN, 16);
     private static final int[] PREFERRED_COLUMN_WIDTHS = { 100, 350, 150 };
     private static final int ROW_BYTE_LENGTH = 16;
 
