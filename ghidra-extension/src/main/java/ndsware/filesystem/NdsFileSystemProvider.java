@@ -3,7 +3,6 @@ package ndsware.filesystem;
 import java.awt.BorderLayout;
 import java.util.ArrayList;
 
-import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -15,7 +14,6 @@ import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
 import docking.widgets.tree.GTree;
-import docking.widgets.tree.GTreeNode;
 import ghidra.framework.plugintool.Plugin;
 import ndsware.parsers.Nds;
 import ndsware.parsers.Nds.Directory;
@@ -24,53 +22,6 @@ import ndsware.parsers.Nds.FileEntry;
 import ndsware.parsers.Nds.FileNameTable;
 
 public class NdsFileSystemProvider extends ComponentProvider {
-
-    private class FileNode extends GTreeNode {
-        private String name;
-        private File file;
-
-        public FileNode(String name) {
-            this.name = name;
-            this.file = null;
-        }
-
-        public void setFile(File file) {
-            this.file = file;
-        }
-
-        private long getFileSize() {
-            long start = file.info().startOffset();
-            long end = file.info().endOffset();
-
-            return end - start;
-        }
-
-        @Override
-        public Icon getIcon(boolean arg0) {
-            return null;
-        }
-
-        @Override
-        public String getName() {
-            String fileString = this.name;
-
-            if (file != null) {
-                fileString += " - " + getFileSize() + "B";
-            }
-
-            return fileString;
-        }
-
-        @Override
-        public String getToolTip() {
-            return null;
-        }
-
-        @Override
-        public boolean isLeaf() {
-            return file != null;
-        }
-    }
 
     private static String MENU_NAME = "NDS";
     private static String MENU_OPTION = "Show Files";
@@ -104,7 +55,7 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
             FileNode fileNode = (FileNode) treePath.getLastPathComponent();
             if (fileNode != null && fileNode.isLeaf()) {
-                fileDataPanel.update(fileNode.name, fileNode.file.data());
+                fileDataPanel.update(fileNode.getDisplayText(), fileNode.getFile().data());
             }
         });
 
