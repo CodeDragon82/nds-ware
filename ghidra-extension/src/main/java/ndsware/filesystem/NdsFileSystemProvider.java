@@ -8,6 +8,7 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
+import javax.swing.tree.TreePath;
 
 import docking.ActionContext;
 import docking.ComponentProvider;
@@ -96,7 +97,12 @@ public class NdsFileSystemProvider extends ComponentProvider {
         tree = new GTree(treeRoot);
         tree.setRootVisible(false);
         tree.addGTreeSelectionListener(e -> {
-            FileNode fileNode = (FileNode) e.getNewLeadSelectionPath().getLastPathComponent();
+            TreePath treePath = e.getNewLeadSelectionPath();
+            if (treePath == null) {
+                return;
+            }
+
+            FileNode fileNode = (FileNode) treePath.getLastPathComponent();
             if (fileNode != null && fileNode.isLeaf()) {
                 fileDataPanel.update(fileNode.name, fileNode.file.data());
             }
