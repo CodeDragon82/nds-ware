@@ -1,4 +1,4 @@
-package ndsware;
+package ndsware.filesystem;
 
 import java.util.ArrayList;
 import java.util.List;

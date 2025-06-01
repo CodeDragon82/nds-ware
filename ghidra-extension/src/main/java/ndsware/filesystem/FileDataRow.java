@@ -1,4 +1,4 @@
-package ndsware;
+package ndsware.filesystem;
 
 public class FileDataRow {
     private final String address;
