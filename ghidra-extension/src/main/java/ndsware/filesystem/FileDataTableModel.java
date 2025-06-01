@@ -63,7 +63,7 @@ public class FileDataTableModel extends AbstractTableModel implements RowObjectT
 
     @Override
     public String getName() {
-        return "test";
+        return "File Data";
     }
 
     @Override

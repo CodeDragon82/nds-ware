@@ -47,6 +47,8 @@ public class NdsFileSystemProvider extends ComponentProvider {
         treeRoot = new FileNode("Root");
         tree = new GTree(treeRoot);
         tree.setRootVisible(false);
+
+        // If a file is selected, load the file data into the 'FileDataPanel'.
         tree.addGTreeSelectionListener(e -> {
             TreePath treePath = e.getNewLeadSelectionPath();
             if (treePath == null) {
@@ -70,6 +72,12 @@ public class NdsFileSystemProvider extends ComponentProvider {
         setVisible(true);
     }
 
+    /*
+     * Called when the program changes.
+     * 
+     * Parses the `.nds` file, extracts the file system, and loads the files/folders
+     * in the `GTree`.
+     */
     public void update(String ndsPath) {
         errorLabel.setText("");
         fileDataPanel.clear();
@@ -80,6 +88,7 @@ public class NdsFileSystemProvider extends ComponentProvider {
 
             Directory rootDirectory = nds.fileNameTable().directories().get(0);
 
+            // The FAT should be read in reverse to the FNT.
             fileIndex = nds.fileAllocationTable().size() - 1;
 
             loadDirectory(nds.fileNameTable(), nds.files(), rootDirectory, treeRoot);
@@ -88,6 +97,10 @@ public class NdsFileSystemProvider extends ComponentProvider {
         }
     }
 
+    /*
+     * Recursively loads files and folders into `FileNode`s and adds them to the
+     * GTree.
+     */
     private void loadDirectory(FileNameTable fileNameTable, ArrayList<File> files,
             Directory directory, FileNode directoryNode) {
 
@@ -108,6 +121,10 @@ public class NdsFileSystemProvider extends ComponentProvider {
         }
     }
 
+    /*
+     * Adds the 'NDS File System' window as a "Show Files" option in the "NDS"
+     * toolbar menu.
+     */
     private void createMenuAction() {
         DockingAction showFilesAction = new DockingAction(MENU_OPTION, this.getOwner()) {
 

@@ -27,13 +27,13 @@ public class FileDataPanel extends JPanel {
         titleLabel = new JLabel("no file selected");
         add(titleLabel, BorderLayout.NORTH);
 
-        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer();
-        cellRenderer.setFont(FONT);
-
         tableModel = new FileDataTableModel();
         filterTable = new GFilterTable<FileDataRow>(tableModel);
-        filterTable.getTable().setFont(FONT);
 
+        // Change font and column width of the table.
+        filterTable.getTable().setFont(FONT);
+        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer();
+        cellRenderer.setFont(FONT);
         TableColumnModel columnModel = filterTable.getTable().getColumnModel();
         for (int i = 0; i < columnModel.getColumnCount(); i++) {
             columnModel.getColumn(i).setPreferredWidth(PREFERRED_COLUMN_WIDTHS[i]);
@@ -54,6 +54,9 @@ public class FileDataPanel extends JPanel {
         tableModel.fireTableDataChanged();
     }
 
+    /*
+     * Separates the file data into rows and adds them to the filter table.
+     */
     private void populateTable(byte[] data) {
         tableModel.clear();
 
@@ -69,6 +72,11 @@ public class FileDataPanel extends JPanel {
         tableModel.fireTableDataChanged();
     }
 
+    /*
+     * Adds a single data row to the filter table.
+     * 
+     * The data is shown in both hex and ascii.
+     */
     private void populateRow(int offset, byte[] rowData) {
         String address = String.format("%08X", offset);
         StringBuilder hex = new StringBuilder();
