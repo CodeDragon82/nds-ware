@@ -14,6 +14,7 @@ dependencies = [
 [project.scripts]
 extract_nds = "ndsware.extract_nds:cli"
 extract_narc = "ndsware.extract_narc:cli"
+extract_graphics = "ndsware.extract_graphics:cli"
 
 [build-system]
 requires = ["setuptools>=61.0"]
