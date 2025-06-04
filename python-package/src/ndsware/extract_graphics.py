@@ -67,22 +67,24 @@ def cli() -> None:
 
 @cli.command()
 @click.argument("ncgr_file", type=str)
-@click.argument("nclr_file", type=str)
+@click.option("-p", "--nclr-file", type=str, help="Colour palette (.nclr) file path.")
 @click.argument("tiles_per_row", type=int)
 @click.argument("output_image_file", type=click.Path(exists=False))
 def extract(ncgr_file: str, nclr_file: str, tiles_per_row: int, output_image_file: str) -> None:
     if not output_image_file.lower().endswith((".png", ".bmp")):
         raise click.BadParameter("Output file must be a valid image type (PNG or BMP).")
 
-    ncgr = G2d.from_file(ncgr_file)
-    nclr = G2d.from_file(nclr_file)
+    if nclr_file:
+        nclr = G2d.from_file(nclr_file)
+        pltt_block: G2d.PlttBlock = get_block(nclr, "PLTT")
+        palette = decode_palette(pltt_block)
+    else:
+        palette = GREY_SCALE
 
+    ncgr = G2d.from_file(ncgr_file)
     char_block: G2d.CharBlock = get_block(ncgr, "CHAR")
-    pltt_block: G2d.PlttBlock = get_block(nclr, "PLTT")
 
     tiles = char_block.graphics_data.tiles
-    palette = decode_palette(pltt_block)
-
     tile_count = len(tiles)
     rows = (tile_count + tiles_per_row - 1) // tiles_per_row
 
