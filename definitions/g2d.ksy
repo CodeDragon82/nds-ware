@@ -85,11 +85,14 @@ types:
       - id: graphics_data_offset
         type: u4
       - id: graphics_data
-        type: graphics_data
+        type: graphics_data(4 << colour_format)
         size: graphics_data_size
-        
+          
   graphics_data:
+    params:
+      - id: tile_size
+        type: u4
     seq:
       - id: tiles
-        size: 32
+        size: tile_size
         repeat: eos
