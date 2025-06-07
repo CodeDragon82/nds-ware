@@ -10,6 +10,8 @@ GREY_SCALE = [(i * 17, i * 17, i * 17, 255) for i in range(16)]
 
 
 def bgr555_to_rgb(colour: int) -> Pixel:
+    """Converts from BGR555 2-byte format to RGB tuple format."""
+
     r = (colour & 0x1F) << 3
     g = ((colour >> 5) & 0x1F) << 3
     b = ((colour >> 10) & 0x1F) << 3
@@ -17,6 +19,8 @@ def bgr555_to_rgb(colour: int) -> Pixel:
 
 
 def decode_palette(pltt_block: G2d.PlttBlock) -> list[Pixel]:
+    """Decodes the raw palette data into a list of colour pixels."""
+
     palette_data = pltt_block.palette_data
     palette = []
 
@@ -29,6 +33,12 @@ def decode_palette(pltt_block: G2d.PlttBlock) -> list[Pixel]:
 
 
 def decode_4bpp_tile(tile: bytes, palette: list[Pixel]) -> list[Pixel]:
+    """
+    Decodes the raw tile data into a list of coloured pixels.
+
+    Each byte contains 2 pixels, one pixel per 4-bits. The 4-bits is integer
+    that represents an index in the colour palette.
+    """
     pixels = []
 
     for byte in tile:
@@ -50,6 +60,8 @@ def generate_tile_image(tile: bytes, palette: list[Pixel]) -> Image.Image:
 
 
 def get_block(g2d: G2d, block_type: str) -> G2d.CharBlock | G2d.PlttBlock:
+    """Get a block of a specific type from a parsed G2D file."""
+
     block: G2d.Block
     for block in g2d.blocks:
         if block.magic == block_type[::-1]:
