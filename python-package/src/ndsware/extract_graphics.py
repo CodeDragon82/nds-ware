@@ -6,7 +6,7 @@ Pixel = tuple[int, int, int, int]
 
 TILE_WIDTH = 8
 TILE_HEIGHT = 8
-GREY_SCALE = [(i * 17, i * 17, i * 17, 255) for i in range(16)]
+GREY_SCALE = [(i * 17, i * 17, i * 17, 255) for i in range(256)]
 
 
 def bgr555_to_rgb(colour: int) -> Pixel:
@@ -15,6 +15,7 @@ def bgr555_to_rgb(colour: int) -> Pixel:
     r = (colour & 0x1F) << 3
     g = ((colour >> 5) & 0x1F) << 3
     b = ((colour >> 10) & 0x1F) << 3
+
     return (r, g, b, 255)
 
 
@@ -50,8 +51,26 @@ def decode_4bpp_tile(tile: bytes, palette: list[Pixel]) -> list[Pixel]:
     return pixels
 
 
-def generate_tile_image(tile: bytes, palette: list[Pixel]) -> Image.Image:
-    pixels = decode_4bpp_tile(tile, palette)
+def decode_8bpp_tile(tile: bytes, palette: list[Pixel]) -> list[Pixel]:
+    """
+    Decodes the raw tile data into a list of coloured pixels.
+
+    Each byte contains 1 pixel.
+    """
+
+    return [palette[byte] for byte in tile]
+
+
+def generate_tile_image(tile: bytes, palette: list[Pixel], colour_format: int) -> Image.Image:
+    """Generate a tile image object from the raw tile data."""
+
+    pixels = []
+    if colour_format == 0x3:
+        pixels = decode_4bpp_tile(tile, palette)
+    elif colour_format == 0x4:
+        pixels = decode_8bpp_tile(tile, palette)
+    else:
+        raise ValueError(f"Unknown colour format: {colour_format}")
 
     tile_image = Image.new("RGBA", (TILE_WIDTH, TILE_HEIGHT))
     tile_image.putdata(pixels)
@@ -103,7 +122,7 @@ def extract(ncgr_file: str, nclr_file: str, tiles_per_row: int, output_image_fil
     image = Image.new("RGBA", (tiles_per_row * TILE_WIDTH, rows * TILE_HEIGHT))
 
     for i, tile in enumerate(tiles):
-        tile_image = generate_tile_image(tile, palette)
+        tile_image = generate_tile_image(tile, palette, char_block.colour_format)
 
         # Calculate tile position in image.
         x = (i % tiles_per_row) * TILE_WIDTH
