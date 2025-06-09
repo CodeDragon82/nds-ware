@@ -1,3 +1,10 @@
+"""
+A tool for extracting images stored using the G2D binary format (i.e., NCGR and NCLR files).
+
+Author: CodeDragon82
+Data: 09/06/2025
+"""
+
 import click
 from ndsware.parsers.g2d import G2d
 from PIL import Image
@@ -96,12 +103,14 @@ def cli() -> None:
     """
 
 
-@cli.command()
+@cli.command(help="Extract the image from an NCGR file.")
 @click.argument("ncgr_file", type=str)
 @click.option("-p", "--nclr-file", type=str, help="Colour palette (.nclr) file path.")
 @click.argument("tiles_per_row", type=int)
 @click.argument("output_image_file", type=click.Path(exists=False))
 def extract(ncgr_file: str, nclr_file: str, tiles_per_row: int, output_image_file: str) -> None:
+    """Extracts an image stored in a NCGR file."""
+
     if not output_image_file.lower().endswith((".png", ".bmp")):
         raise click.BadParameter("Output file must be a valid image type (PNG or BMP).")
 
