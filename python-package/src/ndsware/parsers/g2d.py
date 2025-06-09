@@ -63,7 +63,7 @@ class G2d(KaitaiStruct):
             self.graphics_data_offset = self._io.read_u4le()
             self._raw_graphics_data = self._io.read_bytes(self.graphics_data_size)
             _io__raw_graphics_data = KaitaiStream(BytesIO(self._raw_graphics_data))
-            self.graphics_data = G2d.GraphicsData(_io__raw_graphics_data, self, self._root)
+            self.graphics_data = G2d.GraphicsData((4 << self.colour_format), _io__raw_graphics_data, self, self._root)
 
 
     class Block(KaitaiStruct):
@@ -100,17 +100,18 @@ class G2d(KaitaiStruct):
 
 
     class GraphicsData(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, tile_size, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
+            self.tile_size = tile_size
             self._read()
 
         def _read(self):
             self.tiles = []
             i = 0
             while not self._io.is_eof():
-                self.tiles.append(self._io.read_bytes(32))
+                self.tiles.append(self._io.read_bytes(self.tile_size))
                 i += 1
 
 
