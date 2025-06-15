@@ -12,6 +12,7 @@ The project includes:
 - Python-based command-line tools:
     - `extract_nds`
     - `extract_narc`
+    - `extract_graphics`
 - Kaitai definitions for the NDS and NARC file formats.
 
 ## 📖 Requirements/Dependencies
@@ -21,6 +22,7 @@ The command line tools require the following Python packages:
 - `click` (8.1.7),
 - `kaitaistruct` (0.10)
 - `tabulate` (0.9.0)
+- `pillow` (11.0.0)
 
 To compile the Ghidra extension, the following are required:
 
@@ -45,11 +47,25 @@ To compile and install the command line tools, simply run `make python`. It's re
 
 ## 🐉 Ghidra Extension
 
-The Ghidra extension currently includes just a loader. The loader detects if the given binary is an NDS ROM and will select the correct language.
+The Ghidra extension includes a loader and plugin.
+
+### Ghidra Loader
+
+The loader detects if the given binary is an NDS ROM and will select the correct language.
 
 ![Ghidra Loader Screenshot](images/ghidra_loader.png)
 
-Upon importing the binary, the ARM9 main code and overlay sections are extracted from the NDS ROM and mapped into memory at their correct base addresses. The remaining uninitialized portions of the [memory map](https://problemkaputt.de/gbatek.htm#dsmemorymaps) are also set up accordingly.
+Upon importing the binary, the ARM9 main code and overlay sections are extracted from the NDS ROM and mapped into memory at their correct base addresses. The remaining uninitialised portions of the [memory map](https://problemkaputt.de/gbatek.htm#dsmemorymaps) are also set up accordingly.
+
+### Ghidra Plugin
+
+The `Ndsware` Ghidra plugin allows the user to view the file system inside NDS ROM. On the toolbar bar, click `NDS -> Show Files` and the "NDS File System" window will appear. The file system can be navigated by opening folders in the left-hand window, and the data of a selected file can be seen in the right-hand window.
+
+![](images/nds_file_system.png)
+
+*Note: If the "NDS" menu is not on the toolbar, check that the plugin is enabled in the Ghidra "Configure Tool" menu.*
+
+### To Be Added
 
 The Ghidra extension does not yet support:
 
@@ -101,6 +117,14 @@ Commands:
   list         Show files and folders within a Nintendo Archive.
 ```
 
+### `extract_graphics`
+
+A tool for extracting images from NCGR (`.ncgr`) files. Use the `-p` flag on the `extract` command to specify a colour palette (`.nclr`).
+
+```bash
+$ extract_graphics extract [NCGR_FILE] [TILES_PER_ROW] [OUTPUT_FILE] -p [NCLR_FILE]
+```
+
 ## 👏 Acknowledgements/References
 
 This project builds on prior research conducted by others on the Nintendo DS. The following websites were particularly helpful.
@@ -110,3 +134,4 @@ This project builds on prior research conducted by others on the Nintendo DS. Th
 - https://dsibrew.org/wiki/DSi_cartridge_header
 - https://gbatemp.net/threads/pointer-tables.185458/
 - https://wrongbaud.github.io/posts/writing-a-ghidra-loader/
+- https://wiki.dshack.org/Wiki.jsp?page=File%20Formats
