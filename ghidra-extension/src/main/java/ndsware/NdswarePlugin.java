@@ -23,6 +23,7 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 import ndsware.filesystem.NdsFileSystemProvider;
+import ndsware.nitrosdk.NitroSdkProvider;
 
 /**
  * Provide class-level documentation that describes what this plugin does.
@@ -39,6 +40,7 @@ import ndsware.filesystem.NdsFileSystemProvider;
 public class NdswarePlugin extends ProgramPlugin {
 
 	NdsFileSystemProvider ndsFileSystemProvider;
+	NitroSdkProvider nitroSdkProvider;
 
 	/**
 	 * Plugin constructor.
@@ -50,6 +52,7 @@ public class NdswarePlugin extends ProgramPlugin {
 
 		String pluginName = getName();
 		ndsFileSystemProvider = new NdsFileSystemProvider(this, pluginName);
+		nitroSdkProvider = new NitroSdkProvider(this, pluginName);
 	}
 
 	@Override
