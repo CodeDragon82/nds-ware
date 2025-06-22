@@ -12,23 +12,20 @@ import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
 import docking.widgets.tree.GTree;
-import docking.widgets.tree.GTreeNode;
 import ghidra.framework.model.DomainFile;
 import ghidra.framework.model.DomainFolder;
 import ghidra.framework.model.Project;
 import ghidra.framework.plugintool.Plugin;
-import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.mem.Memory;
 import ghidra.program.model.mem.MemoryAccessException;
-import ghidra.program.model.symbol.SourceType;
-import ghidra.program.model.symbol.SymbolTable;
 import ghidra.util.Msg;
 import ghidra.util.exception.CancelledException;
-import ghidra.util.exception.InvalidInputException;
 import ghidra.util.exception.VersionException;
 import ghidra.util.task.ConsoleTaskMonitor;
+import ghidra.util.task.Task;
+import ghidra.util.task.TaskLauncher;
 import ghidra.util.task.TaskMonitor;
 
 public class NitroSdkProvider extends ComponentProvider {
@@ -60,13 +57,14 @@ public class NitroSdkProvider extends ComponentProvider {
     private void buildPanel() {
         panel = new JPanel(new BorderLayout());
 
-        treeRoot = new LibraryNode("Root");
+        treeRoot = new LibraryNode("");
         tree = new GTree(treeRoot);
         tree.setRootVisible(false);
 
         JButton analyseButton = new JButton("Analyse");
         analyseButton.addActionListener((e) -> {
-            analyseLibrary(treeRoot);
+            Task task = new AnalyseLibraryTask(program, treeRoot);
+            TaskLauncher.launch(task);
         });
 
         panel.add(tree, BorderLayout.CENTER);
@@ -116,39 +114,6 @@ public class NitroSdkProvider extends ComponentProvider {
 
             LibraryNode newNode = new LibraryNode(functionName, functionBytes);
             node.addNode(newNode);
-        }
-    }
-
-    /**
-     * Find and label all functions from the given library within the game binary.
-     */
-    private void analyseLibrary(LibraryNode node) {
-        Memory memory = program.getMemory();
-        SymbolTable symbolTable = program.getSymbolTable();
-
-        if (node.isLeaf()) {
-            Address functionAddress = memory.findBytes(program.getMinAddress(),
-                    program.getMaxAddress(), node.getFunctionBytes(), null, true,
-                    monitor);
-
-            if (functionAddress != null) {
-                int transactionID = program.startTransaction("Label " + node.getFunctionName());
-                boolean success = false;
-                try {
-                    symbolTable.createLabel(functionAddress, node.getFunctionName(),
-                            SourceType.USER_DEFINED);
-                    success = true;
-                } catch (InvalidInputException e) {
-                    Msg.showError(this, null, "Failed to label Nitro SDK function",
-                            e.getMessage());
-                }
-                program.endTransaction(transactionID, success);
-            }
-
-        } else {
-            for (GTreeNode childNode : node.getChildren()) {
-                analyseLibrary((LibraryNode) childNode);
-            }
         }
     }
 
