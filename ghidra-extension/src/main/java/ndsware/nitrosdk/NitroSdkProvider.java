@@ -3,7 +3,6 @@ package ndsware.nitrosdk;
 import java.awt.BorderLayout;
 import java.io.IOException;
 
-import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
@@ -12,7 +11,6 @@ import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
 import docking.widgets.tree.GTree;
-import docking.widgets.tree.GTreeNode;
 import ghidra.framework.model.DomainFile;
 import ghidra.framework.model.DomainFolder;
 import ghidra.framework.model.Project;
@@ -28,48 +26,6 @@ import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.TaskMonitor;
 
 public class NitroSdkProvider extends ComponentProvider {
-
-    private class LibraryNode extends GTreeNode {
-        private String name;
-        private byte[] bytes;
-
-        public LibraryNode(String name) {
-            this.name = name;
-        }
-
-        public LibraryNode(String name, byte[] bytes) {
-            this.name = name;
-            this.bytes = bytes;
-        }
-
-        public String getFunctionName() {
-            return name;
-        }
-
-        public byte[] getFunctionBytes() {
-            return bytes;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public Icon getIcon(boolean arg0) {
-            return null;
-        }
-
-        @Override
-        public String getToolTip() {
-            return null;
-        }
-
-        @Override
-        public boolean isLeaf() {
-            return bytes != null;
-        }
-    }
 
     private static String MENU_NAME = "NDS";
     private static String MENU_OPTION = "Nitro SDK";
