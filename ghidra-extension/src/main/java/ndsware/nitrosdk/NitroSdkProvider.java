@@ -2,10 +2,6 @@ package ndsware.nitrosdk;
 
 import java.awt.BorderLayout;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.swing.Icon;
 import javax.swing.JComponent;
@@ -18,6 +14,7 @@ import docking.action.MenuData;
 import docking.widgets.tree.GTree;
 import docking.widgets.tree.GTreeNode;
 import ghidra.framework.model.DomainFile;
+import ghidra.framework.model.DomainFolder;
 import ghidra.framework.model.Project;
 import ghidra.framework.plugintool.Plugin;
 import ghidra.program.model.listing.Function;
@@ -76,6 +73,7 @@ public class NitroSdkProvider extends ComponentProvider {
 
     private static String MENU_NAME = "NDS";
     private static String MENU_OPTION = "Nitro SDK";
+    private static String IMPORTED_NITRO_SDK_FOLDER = "nitro-sdk";
 
     private Project project;
     private TaskMonitor monitor;
@@ -109,35 +107,47 @@ public class NitroSdkProvider extends ComponentProvider {
     }
 
     private void load() {
-        DomainFile library = project.getProjectData().getRootFolder().getFolder("libmi.a")
-                .getFolder("mi_memory.o")
-                .getFile("mi_memory.o");
-        try {
-            loadLibrary(library);
-        } catch (VersionException | CancelledException | MemoryAccessException | IOException err) {
-            Msg.showError(this, null, "Failed to load " + library.getName(), err.getMessage());
+
+        DomainFolder projectFolder = project.getProjectData().getRootFolder();
+        DomainFolder nitroSdkFolder = projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER);
+
+        loadLibrary(nitroSdkFolder, treeRoot);
+    }
+
+    private void loadLibrary(DomainFolder folder, LibraryNode node) {
+        for (DomainFolder childFolder : folder.getFolders()) {
+            LibraryNode childNode = new LibraryNode(childFolder.getName());
+            node.addNode(childNode);
+
+            loadLibrary(childFolder, childNode);
+        }
+
+        for (DomainFile childFile : folder.getFiles()) {
+            LibraryNode childNode = new LibraryNode(childFile.getName());
+            node.addNode(childNode);
+
+            try {
+                loadLibrary(childFile, childNode);
+            } catch (VersionException | CancelledException | MemoryAccessException | IOException e) {
+                Msg.showError(this, null, "Failed to load " + childFile.getName(), e.getMessage());
+            }
         }
     }
 
-    private List<LibraryFunction> loadLibrary(DomainFile library)
+    private void loadLibrary(DomainFile file, LibraryNode node)
             throws VersionException, CancelledException, IOException, MemoryAccessException {
-        ArrayList<LibraryFunction> libraryFunctions = new ArrayList<LibraryFunction>();
 
-        Program libraryProgram = (Program) library.getDomainObject(new Object(), false, false, monitor);
+        Program libraryProgram = (Program) file.getDomainObject(new Object(), false, false, monitor);
         Memory libraryMemory = libraryProgram.getMemory();
 
         for (Function function : libraryProgram.getFunctionManager().getFunctions(true)) {
             String functionName = function.getName();
             byte[] functionBytes = new byte[(int) function.getBody().getNumAddresses()];
             libraryMemory.getBytes(function.getBody().getMinAddress(), functionBytes);
-            libraryFunctions.add(new LibraryFunction(functionName, functionBytes));
+
+            LibraryNode newNode = new LibraryNode(functionName, functionBytes);
+            node.addNode(newNode);
         }
-
-        Msg.showInfo(this, null, "Loaded library " + library.getName(),
-                libraryFunctions.stream().map(f -> f.getName() + ": " + Arrays.toString(f.getBytes()))
-                        .collect(Collectors.toList()));
-
-        return libraryFunctions;
     }
 
     /*
