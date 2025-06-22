@@ -15,6 +15,7 @@ import docking.ActionContext;
 import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
+import docking.widgets.tree.GTree;
 import docking.widgets.tree.GTreeNode;
 import ghidra.framework.model.DomainFile;
 import ghidra.framework.model.Project;
@@ -79,6 +80,9 @@ public class NitroSdkProvider extends ComponentProvider {
     private Project project;
     private TaskMonitor monitor;
 
+    private GTree tree;
+    private LibraryNode treeRoot;
+
     private JPanel panel;
 
     public NitroSdkProvider(Plugin plugin, String owner) {
@@ -94,6 +98,12 @@ public class NitroSdkProvider extends ComponentProvider {
 
     private void buildPanel() {
         panel = new JPanel(new BorderLayout());
+
+        treeRoot = new LibraryNode("Root");
+        tree = new GTree(treeRoot);
+        tree.setRootVisible(false);
+
+        panel.add(tree);
 
         setVisible(true);
     }
