@@ -67,5 +67,6 @@ public class NdswarePlugin extends ProgramPlugin {
 		String ndsPath = program.getExecutablePath();
 
 		ndsFileSystemProvider.update(ndsPath);
+		nitroSdkProvider.update(program);
 	}
 }

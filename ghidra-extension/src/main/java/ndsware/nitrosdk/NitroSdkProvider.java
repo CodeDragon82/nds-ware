@@ -32,6 +32,7 @@ public class NitroSdkProvider extends ComponentProvider {
     private static String IMPORTED_NITRO_SDK_FOLDER = "nitro-sdk";
 
     private Project project;
+    private Program program;
     private TaskMonitor monitor;
 
     private GTree tree;
@@ -130,4 +131,7 @@ public class NitroSdkProvider extends ComponentProvider {
         return panel;
     }
 
+    public void update(Program newProgram) {
+        this.program = newProgram;
+    }
 }
