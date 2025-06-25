@@ -6,12 +6,14 @@ import java.io.IOException;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.tree.TreePath;
 
 import docking.ActionContext;
 import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
 import docking.widgets.tree.GTree;
+import ghidra.app.services.GoToService;
 import ghidra.framework.model.DomainFile;
 import ghidra.framework.model.DomainFolder;
 import ghidra.framework.model.Project;
@@ -59,6 +61,18 @@ public class NitroSdkProvider extends ComponentProvider {
         treeRoot = new LibraryNode("");
         tree = new GTree(treeRoot);
         tree.setRootVisible(false);
+        tree.addGTreeSelectionListener((e) -> {
+            TreePath treePath = e.getPath();
+            if (treePath == null) {
+                return;
+            }
+
+            LibraryNode libraryNode = (LibraryNode) treePath.getLastPathComponent();
+            if (true) {
+                GoToService goToService = getTool().getService(GoToService.class);
+                goToService.goTo(libraryNode.getFunctionAddress());
+            }
+        });
 
         JButton analyseButton = new JButton("Analyse");
         analyseButton.addActionListener((e) -> {

@@ -39,6 +39,23 @@ public class LibraryNode extends GTreeNode {
         return bytes;
     }
 
+    /**
+     * Returns the function address if found, or null if not found.
+     */
+    public Address getFunctionAddress() {
+        if (symbolTable == null) {
+            return null;
+        }
+
+        List<Symbol> functionSymbols = symbolTable.getGlobalSymbols(name);
+
+        if (functionSymbols.isEmpty()) {
+            return null;
+        }
+
+        return functionSymbols.getFirst().getAddress();
+    }
+
     @Override
     public String getName() {
         return name;
