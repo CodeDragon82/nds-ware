@@ -51,7 +51,6 @@ public class NitroSdkProvider extends ComponentProvider {
 
         buildPanel();
         createMenuAction();
-        load();
     }
 
     private void buildPanel() {
@@ -143,5 +142,6 @@ public class NitroSdkProvider extends ComponentProvider {
 
     public void update(Program newProgram) {
         this.program = newProgram;
+        load();
     }
 }
