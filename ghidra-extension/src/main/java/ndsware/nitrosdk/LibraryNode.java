@@ -49,7 +49,7 @@ public class LibraryNode extends GTreeNode {
 
         // If libraryNode is a not a function, return null.
         if (symbolTable == null) {
-        return null;
+            return null;
         }
 
         List<Symbol> functionSymbols = symbolTable.getGlobalSymbols(name);
@@ -63,7 +63,22 @@ public class LibraryNode extends GTreeNode {
 
     @Override
     public String getToolTip() {
-        return null;
+
+        // If libraryNode is a not a function, return null.
+        if (symbolTable == null) {
+            return null;
+        }
+
+        List<Symbol> functionSymbols = symbolTable.getGlobalSymbols(name);
+
+        if (functionSymbols.isEmpty()) {
+            return "Not Found";
+        }
+
+        Address functionAddress = functionSymbols.getFirst().getAddress();
+        String functionOffset = "0x" + Integer.toHexString((int) functionAddress.getOffset());
+
+        return "Found at " + functionOffset;
     }
 
     @Override
