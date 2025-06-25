@@ -111,7 +111,7 @@ public class NitroSdkProvider extends ComponentProvider {
             byte[] functionBytes = new byte[(int) function.getBody().getNumAddresses()];
             libraryMemory.getBytes(function.getBody().getMinAddress(), functionBytes);
 
-            LibraryNode newNode = new LibraryNode(functionName, functionBytes);
+            LibraryNode newNode = new LibraryNode(functionName, functionBytes, program.getSymbolTable());
             node.addNode(newNode);
         }
     }
