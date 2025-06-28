@@ -1,6 +1,7 @@
 package ndsware.nitrosdk;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.io.IOException;
 
 import javax.swing.JButton;
@@ -12,6 +13,7 @@ import docking.ActionContext;
 import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
+import docking.widgets.OptionDialog;
 import docking.widgets.tree.GTree;
 import ghidra.app.services.GoToService;
 import ghidra.framework.model.DomainFile;
@@ -37,6 +39,7 @@ public class NitroSdkProvider extends ComponentProvider {
     private static String IMPORTED_NITRO_SDK_FOLDER = "nitro-sdk";
 
     private Project project;
+    private DomainFolder projectFolder;
     private Program program;
     private TaskMonitor monitor;
 
@@ -49,6 +52,7 @@ public class NitroSdkProvider extends ComponentProvider {
         super(plugin.getTool(), "Nitro SDK", owner);
 
         project = plugin.getTool().getProject();
+        projectFolder = project.getProjectData().getRootFolder();
         monitor = new ConsoleTaskMonitor();
 
         buildPanel();
@@ -74,25 +78,43 @@ public class NitroSdkProvider extends ComponentProvider {
             }
         });
 
+        JButton importButton = new JButton("Import");
+        importButton.addActionListener((e) -> {
+
+            // If the Nitro SDK folder exists in project, ask the user if they want to
+            // overwrite it.
+            if (projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER) != null) {
+                int result = OptionDialog.showYesNoDialog(null, "Existing Nitro SDK",
+                        "Nitro SDK has already been imported. Do you want to overwrite it?");
+                if (result != OptionDialog.YES_OPTION) {
+                    return;
+                }
+            }
+
+            Msg.showInfo(this, null, "importing", "importing nitro sdk");
+        });
+
         JButton analyseButton = new JButton("Analyse");
         analyseButton.addActionListener((e) -> {
             Task task = new AnalyseLibraryTask(program, treeRoot);
             TaskLauncher.launch(task);
         });
 
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.add(importButton);
+        buttonPanel.add(analyseButton);
+
         panel.add(tree, BorderLayout.CENTER);
-        panel.add(analyseButton, BorderLayout.SOUTH);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
 
         setVisible(true);
     }
 
     private void load() {
-
-        DomainFolder projectFolder = project.getProjectData().getRootFolder();
         DomainFolder nitroSdkFolder = projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER);
 
         if (nitroSdkFolder != null) {
-        loadLibrary(nitroSdkFolder, treeRoot);
+            loadLibrary(nitroSdkFolder, treeRoot);
         }
     }
 
