@@ -6,7 +6,9 @@ import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JPanel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.TreePath;
 
 import docking.ActionContext;
@@ -89,6 +91,18 @@ public class NitroSdkProvider extends ComponentProvider {
                 if (result != OptionDialog.YES_OPTION) {
                     return;
                 }
+            }
+
+            JFileChooser fileChooser = new JFileChooser();
+
+            // Filter for ZIP files.
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("ZIP files", "zip");
+            fileChooser.setFileFilter(filter);
+
+            int result = fileChooser.showOpenDialog(null);
+            if (result != JFileChooser.APPROVE_OPTION) {
+                Msg.showError(this, null, "Invalid File", "Cannot import Nitro SDK from a non-ZIP file.");
+                return;
             }
 
             Msg.showInfo(this, null, "importing", "importing nitro sdk");
