@@ -91,7 +91,9 @@ public class NitroSdkProvider extends ComponentProvider {
         DomainFolder projectFolder = project.getProjectData().getRootFolder();
         DomainFolder nitroSdkFolder = projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER);
 
+        if (nitroSdkFolder != null) {
         loadLibrary(nitroSdkFolder, treeRoot);
+        }
     }
 
     private void loadLibrary(DomainFolder folder, LibraryNode node) {
