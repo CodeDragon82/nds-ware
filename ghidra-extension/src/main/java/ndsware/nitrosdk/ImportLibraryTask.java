@@ -81,6 +81,7 @@ public class ImportLibraryTask extends Task {
 
         // Import binary (.o) files, containing in unix archive (.a) files, extracted
         // from the Nitro SDK ZIP.
+        monitor.initialize(unixArchives.size());
         for (ZipEntry entry : unixArchives) {
             File unixArchive;
             try {
@@ -90,6 +91,8 @@ public class ImportLibraryTask extends Task {
             } catch (IOException e) {
                 Msg.showError(this, null, "Failed to import " + entry.getName(), e.getMessage());
             }
+
+            monitor.increment();
         }
     }
 
