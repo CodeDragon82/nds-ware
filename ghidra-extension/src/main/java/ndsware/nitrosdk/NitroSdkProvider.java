@@ -2,7 +2,6 @@ package ndsware.nitrosdk;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -18,21 +17,14 @@ import docking.action.MenuData;
 import docking.widgets.OptionDialog;
 import docking.widgets.tree.GTree;
 import ghidra.app.services.GoToService;
-import ghidra.framework.model.DomainFile;
 import ghidra.framework.model.DomainFolder;
 import ghidra.framework.model.Project;
 import ghidra.framework.plugintool.Plugin;
-import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Program;
-import ghidra.program.model.mem.Memory;
-import ghidra.program.model.mem.MemoryAccessException;
 import ghidra.util.Msg;
-import ghidra.util.exception.CancelledException;
-import ghidra.util.exception.VersionException;
-import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
-import ghidra.util.task.TaskMonitor;
+import ghidra.util.task.TaskListener;
 
 public class NitroSdkProvider extends ComponentProvider {
 
@@ -43,7 +35,6 @@ public class NitroSdkProvider extends ComponentProvider {
     private Project project;
     private DomainFolder projectFolder;
     private Program program;
-    private TaskMonitor monitor;
 
     private GTree tree;
     private LibraryNode treeRoot;
@@ -55,7 +46,6 @@ public class NitroSdkProvider extends ComponentProvider {
 
         project = plugin.getTool().getProject();
         projectFolder = project.getProjectData().getRootFolder();
-        monitor = new ConsoleTaskMonitor();
 
         buildPanel();
         createMenuAction();
@@ -106,6 +96,18 @@ public class NitroSdkProvider extends ComponentProvider {
             }
 
             Task task = new ImportLibraryTask(fileChooser.getSelectedFile(), projectFolder);
+            task.addTaskListener(new TaskListener() {
+
+                @Override
+                public void taskCompleted(Task arg0) {
+                    loadNitroSdk();
+                }
+
+                @Override
+                public void taskCancelled(Task arg0) {
+                }
+
+            });
             TaskLauncher.launch(task);
         });
 
@@ -123,50 +125,6 @@ public class NitroSdkProvider extends ComponentProvider {
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
         setVisible(true);
-    }
-
-    private void load() {
-        DomainFolder nitroSdkFolder = projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER);
-
-        if (nitroSdkFolder != null) {
-            loadLibrary(nitroSdkFolder, treeRoot);
-        }
-    }
-
-    private void loadLibrary(DomainFolder folder, LibraryNode node) {
-        for (DomainFolder childFolder : folder.getFolders()) {
-            LibraryNode childNode = new LibraryNode(childFolder.getName());
-            node.addNode(childNode);
-
-            loadLibrary(childFolder, childNode);
-        }
-
-        for (DomainFile childFile : folder.getFiles()) {
-            LibraryNode childNode = new LibraryNode(childFile.getName());
-            node.addNode(childNode);
-
-            try {
-                loadLibrary(childFile, childNode);
-            } catch (VersionException | CancelledException | MemoryAccessException | IOException e) {
-                Msg.showError(this, null, "Failed to load " + childFile.getName(), e.getMessage());
-            }
-        }
-    }
-
-    private void loadLibrary(DomainFile file, LibraryNode node)
-            throws VersionException, CancelledException, IOException, MemoryAccessException {
-
-        Program libraryProgram = (Program) file.getDomainObject(new Object(), false, false, monitor);
-        Memory libraryMemory = libraryProgram.getMemory();
-
-        for (Function function : libraryProgram.getFunctionManager().getFunctions(true)) {
-            String functionName = function.getName();
-            byte[] functionBytes = new byte[(int) function.getBody().getNumAddresses()];
-            libraryMemory.getBytes(function.getBody().getMinAddress(), functionBytes);
-
-            LibraryNode newNode = new LibraryNode(functionName, functionBytes, program.getSymbolTable());
-            node.addNode(newNode);
-        }
     }
 
     /*
@@ -195,6 +153,13 @@ public class NitroSdkProvider extends ComponentProvider {
 
     public void update(Program newProgram) {
         this.program = newProgram;
-        load();
+
+        loadNitroSdk();
+    }
+
+    private void loadNitroSdk() {
+        Task loadLibraryTask = new LoadLibraryTask(program, projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER),
+                treeRoot);
+        TaskLauncher.launch(loadLibraryTask);
     }
 }
