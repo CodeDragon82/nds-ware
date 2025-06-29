@@ -38,7 +38,7 @@ public class NitroSdkProvider extends ComponentProvider {
 
     private static String MENU_NAME = "NDS";
     private static String MENU_OPTION = "Nitro SDK";
-    private static String IMPORTED_NITRO_SDK_FOLDER = "nitro-sdk";
+    public static String IMPORTED_NITRO_SDK_FOLDER = "nitro-sdk";
 
     private Project project;
     private DomainFolder projectFolder;
@@ -105,7 +105,8 @@ public class NitroSdkProvider extends ComponentProvider {
                 return;
             }
 
-            Msg.showInfo(this, null, "importing", "importing nitro sdk");
+            Task task = new ImportLibraryTask(fileChooser.getSelectedFile(), projectFolder);
+            TaskLauncher.launch(task);
         });
 
         JButton analyseButton = new JButton("Analyse");
