@@ -13,11 +13,21 @@ import java.util.zip.ZipFile;
 
 import docking.widgets.OptionDialog;
 import ghidra.formats.gfilesystem.FSRL;
+import ghidra.framework.model.DomainFile;
 import ghidra.framework.model.DomainFolder;
 import ghidra.plugins.importer.batch.BatchInfo;
+import ghidra.program.database.function.OverlappingFunctionException;
+import ghidra.program.disassemble.Disassembler;
+import ghidra.program.model.address.Address;
+import ghidra.program.model.address.AddressSet;
+import ghidra.program.model.listing.Function;
+import ghidra.program.model.listing.Instruction;
+import ghidra.program.model.listing.Listing;
+import ghidra.program.model.listing.Program;
 import ghidra.util.InvalidNameException;
 import ghidra.util.Msg;
 import ghidra.util.exception.CancelledException;
+import ghidra.util.exception.VersionException;
 import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
@@ -94,6 +104,9 @@ public class ImportLibraryTask extends Task {
 
             monitor.increment();
         }
+
+        monitor.initialize(countBinaries(nitroSdkFolder));
+        analyseLibraryBinaries(nitroSdkFolder, monitor);
     }
 
     /**
@@ -131,6 +144,96 @@ public class ImportLibraryTask extends Task {
         // Ghidra.
         Task importTask = new ImportUnixArchiveTask(batchInfo, nitroSdkFolder, true, true);
         importTask.run(new ConsoleTaskMonitor());
+    }
+
+    private void analyseLibraryBinaries(DomainFolder folder, TaskMonitor monitor) throws CancelledException {
+        for (DomainFolder childFolder : folder.getFolders()) {
+            analyseLibraryBinaries(childFolder, monitor);
+        }
+
+        for (DomainFile childFile : folder.getFiles()) {
+            analyseLibraryBinary(childFile, monitor);
+            monitor.increment();
+        }
+    }
+
+    /**
+     * Disassembles instructions and updates the address sets for all functions in
+     * the given library binary, then saves the changes.
+     * 
+     * Return false if anything fails.
+     */
+    private boolean analyseLibraryBinary(DomainFile file, TaskMonitor monitor) {
+        monitor.setMessage("Analysing functions in " + file.getName());
+
+        Program libraryProgram;
+        try {
+            libraryProgram = (Program) file.getDomainObject(new Object(), false, false, monitor);
+        } catch (VersionException | CancelledException | IOException e) {
+            return false;
+        }
+
+        Listing libraryListing = libraryProgram.getListing();
+        Disassembler disassembler = Disassembler.getDisassembler(libraryProgram, new ConsoleTaskMonitor(), null);
+
+        int txId = libraryProgram.startTransaction("Analysis");
+        for (Function function : libraryProgram.getFunctionManager().getFunctions(true)) {
+            try {
+                analyseLibraryFunction(function, libraryListing, disassembler);
+            } catch (OverlappingFunctionException e) {
+                continue;
+            }
+        }
+        libraryProgram.endTransaction(txId, true);
+
+        try {
+            libraryProgram.save("Saving " + file.getName(), new ConsoleTaskMonitor());
+        } catch (CancelledException | IOException e) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Disassembles instructions and updates the address set for a given function
+     * within the library binary.
+     */
+    private void analyseLibraryFunction(Function function, Listing listing, Disassembler disassembler)
+            throws OverlappingFunctionException {
+        Address startAddress = function.getEntryPoint();
+
+        disassembler.disassemble(startAddress, null);
+
+        // Find function end address.
+        Address endAddress = startAddress;
+        for (Instruction instruction : listing.getInstructions(startAddress, true)) {
+            if (instruction == null) {
+                break;
+            }
+
+            endAddress = instruction.getAddress();
+
+            if (instruction.getFlowType().isTerminal()) {
+                break;
+            }
+        }
+
+        // Update function address set.
+        function.setBody(new AddressSet(startAddress, endAddress));
+    }
+
+    private int countBinaries(DomainFolder folder) {
+        int count = 0;
+        for (DomainFolder childFolder : folder.getFolders()) {
+            count += countBinaries(childFolder);
+        }
+
+        for (DomainFile file : folder.getFiles()) {
+            count += 1;
+        }
+
+        return count;
     }
 
 }
