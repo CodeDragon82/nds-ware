@@ -64,9 +64,16 @@ public class LoadLibraryTask extends Task {
         Memory libraryMemory = libraryProgram.getMemory();
 
         for (Function function : libraryProgram.getFunctionManager().getFunctions(true)) {
+
             String functionName = function.getName();
             byte[] functionBytes = new byte[(int) function.getBody().getNumAddresses()];
             libraryMemory.getBytes(function.getBody().getMinAddress(), functionBytes);
+
+            // Skip loading library functions that were incorrectly analysed when the Nitro
+            // SDK was imported.
+            if (functionBytes.length <= 1) {
+                return;
+            }
 
             LibraryNode newNode = new LibraryNode(functionName, functionBytes, program.getSymbolTable());
             node.addNode(newNode);
