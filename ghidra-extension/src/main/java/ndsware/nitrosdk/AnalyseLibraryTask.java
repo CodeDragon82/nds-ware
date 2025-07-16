@@ -59,8 +59,9 @@ public class AnalyseLibraryTask extends Task {
     private void findAndLabelFunction(LibraryNode library, TaskMonitor monitor, String path) {
         monitor.setMessage("Analysing " + path + "...");
 
-        Memory memory = program.getMemory();
-        SymbolTable symbolTable = program.getSymbolTable();
+        if (isFound(library.getFunctionName())) {
+            return;
+        }
 
         Address functionAddress = memory.findBytes(program.getMinAddress(),
                 program.getMaxAddress(), library.getFunctionBytes(), null, true,
@@ -80,6 +81,10 @@ public class AnalyseLibraryTask extends Task {
             monitor.setMessage("Failed to label " + library.getFunctionName() + ": " + e.getMessage());
         }
         program.endTransaction(transactionID, success);
+    }
+
+    private boolean isFound(String functionName) {
+        return symbolTable.getGlobalSymbols(functionName).size() != 0;
     }
 
     private int countFunctions(LibraryNode libraryNode) {
