@@ -15,11 +15,15 @@ import ghidra.util.task.TaskMonitor;
 public class AnalyseLibraryTask extends Task {
 
     private final Program program;
+    private final Memory memory;
+    private final SymbolTable symbolTable;
     private final LibraryNode rootNode;
 
     public AnalyseLibraryTask(Program program, LibraryNode rootNode) {
         super("Finding and Labelling Nitro SDK Functions", true, true, true);
         this.program = program;
+        this.memory = program.getMemory();
+        this.symbolTable = program.getSymbolTable();
         this.rootNode = rootNode;
     }
 
