@@ -8,6 +8,7 @@ import ghidra.program.model.symbol.SourceType;
 import ghidra.program.model.symbol.SymbolTable;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.InvalidInputException;
+import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 
@@ -24,7 +25,7 @@ public class AnalyseLibraryTask extends Task {
 
     @Override
     public void run(TaskMonitor monitor) throws CancelledException {
-        monitor.setMessage("Started analyse for Nitro SDK function...");
+        monitor.initialize(countFunctions(rootNode));
 
         analyseLibrary(rootNode, monitor, "");
     }
@@ -32,7 +33,7 @@ public class AnalyseLibraryTask extends Task {
     /**
      * Find and label all functions from the given library within the binary.
      */
-    private void analyseLibrary(LibraryNode node, TaskMonitor monitor, String path) {
+    private void analyseLibrary(LibraryNode node, TaskMonitor monitor, String path) throws CancelledException {
 
         // Stop searching if the user cancels the task.
         if (monitor.isCancelled()) {
@@ -43,6 +44,7 @@ public class AnalyseLibraryTask extends Task {
 
         if (node.isLeaf()) {
             findAndLabelFunction(node, monitor, path);
+            monitor.increment();
         } else {
             for (GTreeNode childNode : node.getChildren()) {
                 analyseLibrary((LibraryNode) childNode, monitor, path);
@@ -58,7 +60,7 @@ public class AnalyseLibraryTask extends Task {
 
         Address functionAddress = memory.findBytes(program.getMinAddress(),
                 program.getMaxAddress(), library.getFunctionBytes(), null, true,
-                monitor);
+                new ConsoleTaskMonitor());
 
         if (functionAddress == null) {
             return;
@@ -74,6 +76,18 @@ public class AnalyseLibraryTask extends Task {
             monitor.setMessage("Failed to label " + library.getFunctionName() + ": " + e.getMessage());
         }
         program.endTransaction(transactionID, success);
+    }
+
+    private int countFunctions(LibraryNode libraryNode) {
+        if (libraryNode.isLeaf()) {
+            return 1;
+        }
+
+        int count = 0;
+        for (GTreeNode node : libraryNode.getChildren()) {
+            count += countFunctions((LibraryNode) node);
+        }
+        return count;
     }
 
 }
