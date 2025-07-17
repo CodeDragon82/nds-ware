@@ -2,6 +2,7 @@ package ndsware.nitrosdk;
 
 import docking.widgets.tree.GTreeNode;
 import ghidra.program.model.address.Address;
+import ghidra.program.model.address.AddressSpace;
 import ghidra.program.model.listing.Program;
 import ghidra.program.model.mem.Memory;
 import ghidra.program.model.symbol.SourceType;
@@ -14,9 +15,17 @@ import ghidra.util.task.TaskMonitor;
 
 public class AnalyseLibraryTask extends Task {
 
+    // Address space to search in.
+    private static final long MIN_OFFSET = 0x2000000;
+    private static final long MAX_OFFSET = 0x2FFFFFF;
+
+    private final Address minAddress;
+    private final Address maxAddress;
+
     private final Program program;
     private final Memory memory;
     private final SymbolTable symbolTable;
+
     private final LibraryNode rootNode;
 
     public AnalyseLibraryTask(Program program, LibraryNode rootNode) {
@@ -24,6 +33,11 @@ public class AnalyseLibraryTask extends Task {
         this.program = program;
         this.memory = program.getMemory();
         this.symbolTable = program.getSymbolTable();
+
+        AddressSpace addressSpace = program.getAddressFactory().getDefaultAddressSpace();
+        minAddress = addressSpace.getAddress(MIN_OFFSET);
+        maxAddress = addressSpace.getAddress(MAX_OFFSET);
+
         this.rootNode = rootNode;
     }
 
@@ -63,8 +77,7 @@ public class AnalyseLibraryTask extends Task {
             return;
         }
 
-        Address functionAddress = memory.findBytes(program.getMinAddress(),
-                program.getMaxAddress(), library.getFunctionBytes(), null, true,
+        Address functionAddress = memory.findBytes(minAddress, maxAddress, library.getFunctionBytes(), null, true,
                 new ConsoleTaskMonitor());
 
         if (functionAddress == null) {
