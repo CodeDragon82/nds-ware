@@ -46,33 +46,31 @@ public class AnalyseLibraryTask extends Task {
     public void run(TaskMonitor monitor) throws CancelledException {
         monitor.initialize(countFunctions(rootNode));
 
-        analyseLibrary(rootNode, monitor, "");
+        analyseLibrary(rootNode, monitor);
     }
 
     /**
      * Find and label all functions from the given library within the binary.
      */
-    private void analyseLibrary(LibraryNode node, TaskMonitor monitor, String path) throws CancelledException {
+    private void analyseLibrary(LibraryNode node, TaskMonitor monitor) throws CancelledException {
 
         // Stop searching if the user cancels the task.
         if (monitor.isCancelled()) {
             return;
         }
 
-        path += "/" + node.getFunctionName();
-
         if (node.isLeaf()) {
-            findAndLabelFunction(node, monitor, path);
+            findAndLabelFunction(node, monitor);
             monitor.increment();
         } else {
             for (GTreeNode childNode : node.getChildren()) {
-                analyseLibrary((LibraryNode) childNode, monitor, path);
+                analyseLibrary((LibraryNode) childNode, monitor);
             }
         }
     }
 
-    private void findAndLabelFunction(LibraryNode library, TaskMonitor monitor, String path) {
-        monitor.setMessage("Analysing " + path + "...");
+    private void findAndLabelFunction(LibraryNode library, TaskMonitor monitor) {
+        monitor.setMessage("Searching for " + library.getFunctionName());
 
         if (isFound(library.getFunctionName())) {
             return;
