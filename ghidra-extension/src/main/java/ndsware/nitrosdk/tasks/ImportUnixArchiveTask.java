@@ -1,4 +1,4 @@
-package ndsware.nitrosdk;
+package ndsware.nitrosdk.tasks;
 
 import java.io.IOException;
 import java.util.Iterator;

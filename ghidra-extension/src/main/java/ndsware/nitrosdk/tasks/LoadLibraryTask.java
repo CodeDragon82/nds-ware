@@ -1,4 +1,4 @@
-package ndsware.nitrosdk;
+package ndsware.nitrosdk.tasks;
 
 import java.io.IOException;
 
@@ -13,6 +13,7 @@ import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.VersionException;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
+import ndsware.nitrosdk.LibraryNode;
 
 public class LoadLibraryTask extends Task {
 

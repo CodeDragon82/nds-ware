@@ -26,6 +26,9 @@ import ghidra.util.Msg;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
 import ghidra.util.task.TaskListener;
+import ndsware.nitrosdk.tasks.AnalyseLibraryTask;
+import ndsware.nitrosdk.tasks.ImportLibraryTask;
+import ndsware.nitrosdk.tasks.LoadLibraryTask;
 
 public class NitroSdkProvider extends ComponentProvider {
 

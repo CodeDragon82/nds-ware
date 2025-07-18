@@ -1,4 +1,4 @@
-package ndsware.nitrosdk;
+package ndsware.nitrosdk.tasks;
 
 import docking.widgets.tree.GTreeNode;
 import ghidra.program.model.address.Address;
@@ -12,6 +12,7 @@ import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
+import ndsware.nitrosdk.LibraryNode;
 
 public class AnalyseLibraryTask extends Task {
 

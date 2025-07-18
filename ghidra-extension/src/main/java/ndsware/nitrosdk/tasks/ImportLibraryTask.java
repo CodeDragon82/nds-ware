@@ -1,4 +1,4 @@
-package ndsware.nitrosdk;
+package ndsware.nitrosdk.tasks;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +31,7 @@ import ghidra.util.exception.VersionException;
 import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
+import ndsware.nitrosdk.NitroSdkProvider;
 
 public class ImportLibraryTask extends Task {
 
