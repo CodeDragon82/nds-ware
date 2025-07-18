@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
@@ -54,9 +55,12 @@ public class NitroSdkProvider extends ComponentProvider {
     private void buildPanel() {
         panel = new JPanel(new BorderLayout());
 
+        JCheckBox hideMissingCheckBox = new JCheckBox("Hide Missing Functions");
+
         treeRoot = new LibraryNode("");
         tree = new GTree(treeRoot);
         tree.setRootVisible(false);
+        tree.setFilterProvider(new LibraryFilterProvider(tree, hideMissingCheckBox));
         tree.addGTreeSelectionListener((e) -> {
             TreePath treePath = e.getPath();
             if (treePath == null) {
@@ -120,6 +124,7 @@ public class NitroSdkProvider extends ComponentProvider {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.add(importButton);
         buttonPanel.add(analyseButton);
+        buttonPanel.add(hideMissingCheckBox);
 
         panel.add(tree, BorderLayout.CENTER);
         panel.add(buttonPanel, BorderLayout.SOUTH);
