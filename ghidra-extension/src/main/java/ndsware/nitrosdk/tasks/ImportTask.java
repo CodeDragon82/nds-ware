@@ -6,8 +6,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Enumeration;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -39,6 +40,9 @@ import ndsware.nitrosdk.NitroSdkProvider;
  */
 public class ImportTask extends Task {
 
+    private static final String TASK_NAME = "Import Nitro SDK";
+    private static final String CREATE_FOLDER_ERROR = "Failed to Create Nitro SDK Folder";
+    private static final String PARSE_ZIP_ERROR = "Failed to Parse ZIP File";
 
     private final File tempDirectory = new File(System.getProperty("java.io.tmpdir"));
 
@@ -47,7 +51,7 @@ public class ImportTask extends Task {
     private File nitroSdkFile;
 
     public ImportTask(File nitroSdkFile, DomainFolder projectFolder) {
-        super("Import Nitro SDK", true, true, true);
+        super(TASK_NAME, true, true, true);
 
         this.nitroSdkFile = nitroSdkFile;
         this.projectFolder = projectFolder;
@@ -62,7 +66,7 @@ public class ImportTask extends Task {
             try {
                 nitroSdkFolder = projectFolder.createFolder(NitroSdkProvider.IMPORTED_NITRO_SDK_FOLDER);
             } catch (InvalidNameException | IOException e) {
-                Msg.showInfo(this, null, "Failed to Create Nitro SDK Folder", e.getMessage());
+                Msg.showError(this, null, CREATE_FOLDER_ERROR, e.getMessage());
                 return;
             }
         }
@@ -72,21 +76,18 @@ public class ImportTask extends Task {
         try {
             nitroSdkZip = new ZipFile(nitroSdkFile);
         } catch (IOException e) {
-            Msg.showError(this, null, "Failed to Parse ZIP File", e.getMessage());
+            Msg.showError(this, null, PARSE_ZIP_ERROR, e.getMessage());
             return;
         }
 
         // Parse entries from ZIP file.
         monitor.setMessage("Parsing ZIP file");
-        ArrayList<ZipEntry> unixArchives = new ArrayList<ZipEntry>();
-        Enumeration<? extends ZipEntry> entries = nitroSdkZip.entries();
-        while (entries.hasMoreElements()) {
-            ZipEntry entry = entries.nextElement();
-            if (!entry.isDirectory() && entry.getName().startsWith("NitroSDK/lib") &&
-                    entry.getName().endsWith(".a") && entry.getName().contains("Release")) {
-                unixArchives.add(entry);
-            }
-        }
+        List<ZipEntry> unixArchives = Collections.list(nitroSdkZip.entries()).stream()
+                .filter(entry -> !entry.isDirectory())
+                .filter(entry -> entry.getName().startsWith("NitroSDK/lib"))
+                .filter(entry -> entry.getName().endsWith(".a"))
+                .filter(entry -> entry.getName().contains("Release"))
+                .collect(Collectors.toList());
 
         // If the user doesn't click "Import", end the task.
         String libraryList = unixArchives.stream().map(ZipEntry::getName).reduce((a, b) -> a + "\n" + b).orElse("");
@@ -99,9 +100,8 @@ public class ImportTask extends Task {
         // from the Nitro SDK ZIP.
         monitor.initialize(unixArchives.size());
         for (ZipEntry entry : unixArchives) {
-            File unixArchive;
             try {
-                unixArchive = extractUnixArchive(nitroSdkZip, entry, monitor);
+                File unixArchive = extractUnixArchive(nitroSdkZip, entry, monitor);
                 importUnixArchive(unixArchive, monitor);
                 unixArchive.delete();
             } catch (IOException e) {
@@ -235,11 +235,7 @@ public class ImportTask extends Task {
             count += countBinaries(childFolder);
         }
 
-        for (DomainFile file : folder.getFiles()) {
-            count += 1;
-        }
-
-        return count;
+        return count + folder.getFiles().length;
     }
 
 }
