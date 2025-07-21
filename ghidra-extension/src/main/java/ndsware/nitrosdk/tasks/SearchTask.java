@@ -14,7 +14,11 @@ import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 import ndsware.nitrosdk.LibraryNode;
 
-public class AnalyseLibraryTask extends Task {
+/**
+ * Searches the game binary for Nitro SDK functions, by matching the byte
+ * signatures.
+ */
+public class SearchTask extends Task {
 
     // Address space to search in.
     private static final long MIN_OFFSET = 0x2000000;
@@ -29,7 +33,7 @@ public class AnalyseLibraryTask extends Task {
 
     private final LibraryNode rootNode;
 
-    public AnalyseLibraryTask(Program program, LibraryNode rootNode) {
+    public SearchTask(Program program, LibraryNode rootNode) {
         super("Finding and Labelling Nitro SDK Functions", true, true, true);
         this.program = program;
         this.memory = program.getMemory();

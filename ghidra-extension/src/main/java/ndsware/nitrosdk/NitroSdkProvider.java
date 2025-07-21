@@ -26,9 +26,9 @@ import ghidra.util.Msg;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
 import ghidra.util.task.TaskListener;
-import ndsware.nitrosdk.tasks.AnalyseLibraryTask;
-import ndsware.nitrosdk.tasks.ImportLibraryTask;
-import ndsware.nitrosdk.tasks.LoadLibraryTask;
+import ndsware.nitrosdk.tasks.ImportTask;
+import ndsware.nitrosdk.tasks.LoadTask;
+import ndsware.nitrosdk.tasks.SearchTask;
 
 public class NitroSdkProvider extends ComponentProvider {
 
@@ -102,7 +102,7 @@ public class NitroSdkProvider extends ComponentProvider {
                 return;
             }
 
-            Task task = new ImportLibraryTask(fileChooser.getSelectedFile(), projectFolder);
+            Task task = new ImportTask(fileChooser.getSelectedFile(), projectFolder);
             task.addTaskListener(new TaskListener() {
 
                 @Override
@@ -120,7 +120,7 @@ public class NitroSdkProvider extends ComponentProvider {
 
         JButton analyseButton = new JButton("Analyse");
         analyseButton.addActionListener((e) -> {
-            Task task = new AnalyseLibraryTask(program, treeRoot);
+            Task task = new SearchTask(program, treeRoot);
             TaskLauncher.launch(task);
         });
 
@@ -166,7 +166,7 @@ public class NitroSdkProvider extends ComponentProvider {
     }
 
     private void loadNitroSdk() {
-        Task loadLibraryTask = new LoadLibraryTask(program, projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER),
+        Task loadLibraryTask = new LoadTask(program, projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER),
                 treeRoot);
         TaskLauncher.launch(loadLibraryTask);
     }

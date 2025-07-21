@@ -33,7 +33,12 @@ import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 import ndsware.nitrosdk.NitroSdkProvider;
 
-public class ImportLibraryTask extends Task {
+/**
+ * Imports the library binaries from the Nitro SDK ZIP file and disassembles the
+ * the functions in each binary.
+ */
+public class ImportTask extends Task {
+
 
     private final File tempDirectory = new File(System.getProperty("java.io.tmpdir"));
 
@@ -41,7 +46,7 @@ public class ImportLibraryTask extends Task {
     private DomainFolder nitroSdkFolder;
     private File nitroSdkFile;
 
-    public ImportLibraryTask(File nitroSdkFile, DomainFolder projectFolder) {
+    public ImportTask(File nitroSdkFile, DomainFolder projectFolder) {
         super("Import Nitro SDK", true, true, true);
 
         this.nitroSdkFile = nitroSdkFile;

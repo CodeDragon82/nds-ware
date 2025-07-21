@@ -15,13 +15,18 @@ import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 import ndsware.nitrosdk.LibraryNode;
 
-public class LoadLibraryTask extends Task {
+/**
+ * Loads functions from the Nitro SDK library binaries and stores them in a
+ * custom `GTree` in the "Nitro SDK" window. For each function, the name and the
+ * byte signature are stored in a `LibraryNode`.
+ */
+public class LoadTask extends Task {
 
     private Program program;
     private DomainFolder nitroSdkFolder;
     private LibraryNode libraryRoot;
 
-    public LoadLibraryTask(Program program, DomainFolder nitroSdkFolder, LibraryNode libraryRoot) {
+    public LoadTask(Program program, DomainFolder nitroSdkFolder, LibraryNode libraryRoot) {
         super("Load Nitro SDK");
 
         this.program = program;
