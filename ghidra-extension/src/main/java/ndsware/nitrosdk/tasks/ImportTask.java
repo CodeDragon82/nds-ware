@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import docking.widgets.OptionDialog;
 import ghidra.formats.gfilesystem.FSRL;
 import ghidra.framework.model.DomainFile;
 import ghidra.framework.model.DomainFolder;
@@ -32,6 +31,7 @@ import ghidra.util.exception.VersionException;
 import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
+import ndsware.misc.ExtraInfoDialog;
 import ndsware.nitrosdk.NitroSdkProvider;
 
 /**
@@ -43,6 +43,7 @@ public class ImportTask extends Task {
     private static final String TASK_NAME = "Import Nitro SDK";
     private static final String CREATE_FOLDER_ERROR = "Failed to Create Nitro SDK Folder";
     private static final String PARSE_ZIP_ERROR = "Failed to Parse ZIP File";
+    private static final String IMPORT_QUESTION = "Do you want to import the following %d libraries from the Nitro SDK?";
 
     private final File tempDirectory = new File(System.getProperty("java.io.tmpdir"));
 
@@ -90,9 +91,12 @@ public class ImportTask extends Task {
                 .collect(Collectors.toList());
 
         // If the user doesn't click "Import", end the task.
-        String libraryList = unixArchives.stream().map(ZipEntry::getName).reduce((a, b) -> a + "\n" + b).orElse("");
-        int result = OptionDialog.showOptionDialog(null, "Import Libraries", libraryList, "Import");
-        if (result != OptionDialog.OPTION_ONE) {
+        String libraryList = unixArchives.stream()
+                .map(entry -> new File(entry.getName()).getName())
+                .reduce((a, b) -> a + "\n" + b).orElse("");
+        String importQuestion = String.format(IMPORT_QUESTION, unixArchives.size());
+
+        if (!ExtraInfoDialog.ask(null, "Import Libraries", importQuestion, libraryList, "Import")) {
             return;
         }
 
