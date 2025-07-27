@@ -66,7 +66,7 @@ public class LoadTask extends Task {
 
         monitor.setMessage("Loading " + file.getName());
 
-        Program libraryProgram = (Program) file.getDomainObject(new Object(), false, false, monitor);
+        Program libraryProgram = (Program) file.getDomainObject(this, false, false, monitor);
         Memory libraryMemory = libraryProgram.getMemory();
 
         for (Function function : libraryProgram.getFunctionManager().getFunctions(true)) {
@@ -84,6 +84,8 @@ public class LoadTask extends Task {
             LibraryNode newNode = new LibraryNode(functionName, functionBytes, program.getSymbolTable());
             node.addNode(newNode);
         }
+
+        libraryProgram.release(this);
     }
 
 }
