@@ -6,23 +6,19 @@ import java.awt.FlowLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JPanel;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.TreePath;
 
 import docking.ActionContext;
 import docking.ComponentProvider;
 import docking.action.DockingAction;
 import docking.action.MenuData;
-import docking.widgets.OptionDialog;
 import docking.widgets.tree.GTree;
 import ghidra.app.services.GoToService;
 import ghidra.framework.model.DomainFolder;
 import ghidra.framework.model.Project;
 import ghidra.framework.plugintool.Plugin;
 import ghidra.program.model.listing.Program;
-import ghidra.util.Msg;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskLauncher;
 import ghidra.util.task.TaskListener;
@@ -80,29 +76,7 @@ public class NitroSdkProvider extends ComponentProvider {
         JButton importButton = new JButton("Import");
         importButton.addActionListener((e) -> {
 
-            // If the Nitro SDK folder exists in project, ask the user if they want to
-            // overwrite it.
-            if (projectFolder.getFolder(IMPORTED_NITRO_SDK_FOLDER) != null) {
-                int result = OptionDialog.showYesNoDialog(null, "Existing Nitro SDK",
-                        "Nitro SDK has already been imported. Do you want to overwrite it?");
-                if (result != OptionDialog.YES_OPTION) {
-                    return;
-                }
-            }
-
-            JFileChooser fileChooser = new JFileChooser();
-
-            // Filter for ZIP files.
-            FileNameExtensionFilter filter = new FileNameExtensionFilter("ZIP files", "zip");
-            fileChooser.setFileFilter(filter);
-
-            int result = fileChooser.showOpenDialog(null);
-            if (result != JFileChooser.APPROVE_OPTION) {
-                Msg.showError(this, null, "Invalid File", "Cannot import Nitro SDK from a non-ZIP file.");
-                return;
-            }
-
-            Task task = new ImportTask(fileChooser.getSelectedFile(), projectFolder);
+            ImportTask task = new ImportTask(projectFolder);
             task.addTaskListener(new TaskListener() {
 
                 @Override
@@ -115,7 +89,9 @@ public class NitroSdkProvider extends ComponentProvider {
                 }
 
             });
-            TaskLauncher.launch(task);
+            if (task.setup()) {
+                TaskLauncher.launch(task);
+            }
         });
 
         JButton analyseButton = new JButton("Analyse");

@@ -12,6 +12,10 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+import docking.widgets.OptionDialog;
 import ghidra.formats.gfilesystem.FSRL;
 import ghidra.framework.model.DomainFile;
 import ghidra.framework.model.DomainFolder;
@@ -43,23 +47,35 @@ public class ImportTask extends Task {
     private static final String TASK_NAME = "Import Nitro SDK";
     private static final String CREATE_FOLDER_ERROR = "Failed to Create Nitro SDK Folder";
     private static final String PARSE_ZIP_ERROR = "Failed to Parse ZIP File";
+    private static final String OVERWRITE_QUESTION = "Nitro SDK has already been imported. Do you want to overwrite it?\n\nWARNING: The previous Nitro SDK import will be deleted.";
     private static final String IMPORT_QUESTION = "Do you want to import the following %d libraries from the Nitro SDK?";
 
     private final File tempDirectory = new File(System.getProperty("java.io.tmpdir"));
+    private final FileNameExtensionFilter ZIP_FILTER = new FileNameExtensionFilter("ZIP files", "zip");
 
     private DomainFolder projectFolder;
     private DomainFolder nitroSdkFolder;
-    private File nitroSdkFile;
 
-    public ImportTask(File nitroSdkFile, DomainFolder projectFolder) {
+    private ZipFile nitroSdkZip;
+    private List<ZipEntry> nitroSdkZipEntries;
+
+    public ImportTask(DomainFolder projectFolder) {
         super(TASK_NAME, true, true, true);
 
-        this.nitroSdkFile = nitroSdkFile;
         this.projectFolder = projectFolder;
     }
 
-    @Override
-    public void run(TaskMonitor monitor) throws CancelledException {
+    /**
+     * Sets up the task by:
+     * <ul>
+     * <li>Creating/loading the Nitro SDK project folder.
+     * <li>Asking the user to select a Nitro SDK ZIP file.
+     * <li>Fetch the ZIP entries for the Nitro SDK archive (.a) files.
+     * </ul>
+     * 
+     * Returns true if the task is ready to run.
+     */
+    public boolean setup() {
 
         // Create/load Nitro SDK folder.
         nitroSdkFolder = projectFolder.getFolder(NitroSdkProvider.IMPORTED_NITRO_SDK_FOLDER);
@@ -68,42 +84,58 @@ public class ImportTask extends Task {
                 nitroSdkFolder = projectFolder.createFolder(NitroSdkProvider.IMPORTED_NITRO_SDK_FOLDER);
             } catch (InvalidNameException | IOException e) {
                 Msg.showError(this, null, CREATE_FOLDER_ERROR, e.getMessage());
-                return;
+                return false;
+            }
+        } else {
+            // If the Nitro SDK folder already exists in project, ask the user if they want
+            // to overwrite it.
+            if (OptionDialog.showYesNoDialog(null, "Overwrite Existing Nitro SDK",
+                    OVERWRITE_QUESTION) != OptionDialog.YES_OPTION) {
+                return false;
             }
         }
 
+        // Let the user select the Nitro SDK ZIP file.
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(ZIP_FILTER);
+        if (fileChooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
+            Msg.showError(this, null, "Invalid File", "Cannot import Nitro SDK from a non-ZIP file.");
+            return false;
+        }
+        File nitroSdkZipFile = fileChooser.getSelectedFile();
+
         // Parse the Nitro SDK ZIP file.
-        ZipFile nitroSdkZip;
         try {
-            nitroSdkZip = new ZipFile(nitroSdkFile);
+            nitroSdkZip = new ZipFile(nitroSdkZipFile);
         } catch (IOException e) {
             Msg.showError(this, null, PARSE_ZIP_ERROR, e.getMessage());
-            return;
+            return false;
         }
 
-        // Parse entries from ZIP file.
-        monitor.setMessage("Parsing ZIP file");
-        List<ZipEntry> unixArchives = Collections.list(nitroSdkZip.entries()).stream()
+        // Filter entries from ZIP file.
+        nitroSdkZipEntries = Collections.list(nitroSdkZip.entries()).stream()
                 .filter(entry -> !entry.isDirectory())
                 .filter(entry -> entry.getName().startsWith("NitroSDK/lib"))
                 .filter(entry -> entry.getName().endsWith(".a"))
                 .filter(entry -> entry.getName().contains("Release"))
                 .collect(Collectors.toList());
 
-        // If the user doesn't click "Import", end the task.
-        String libraryList = unixArchives.stream()
+        String libraryList = nitroSdkZipEntries.stream()
                 .map(entry -> new File(entry.getName()).getName())
                 .reduce((a, b) -> a + "\n" + b).orElse("");
-        String importQuestion = String.format(IMPORT_QUESTION, unixArchives.size());
+        String importQuestion = String.format(IMPORT_QUESTION, nitroSdkZipEntries.size());
 
-        if (!ExtraInfoDialog.ask(null, "Import Libraries", importQuestion, libraryList, "Import")) {
-            return;
-        }
+        // Ask the user if they want to import the Nitro SDK libraries.
+        return ExtraInfoDialog.ask(null, "Import Libraries", importQuestion, libraryList, "Import");
+    }
+
+    @Override
+    public void run(TaskMonitor monitor) throws CancelledException {
 
         // Import binary (.o) files, containing in unix archive (.a) files, extracted
         // from the Nitro SDK ZIP.
-        monitor.initialize(unixArchives.size());
-        for (ZipEntry entry : unixArchives) {
+        monitor.initialize(nitroSdkZipEntries.size());
+        for (ZipEntry entry : nitroSdkZipEntries) {
             try {
                 File unixArchive = extractUnixArchive(nitroSdkZip, entry, monitor);
                 importUnixArchive(unixArchive, monitor);
