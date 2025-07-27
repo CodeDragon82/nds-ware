@@ -45,6 +45,7 @@ import ndsware.nitrosdk.NitroSdkProvider;
 public class ImportTask extends Task {
 
     private static final String TASK_NAME = "Import Nitro SDK";
+    private static final String DELETE_FOLDER_EEROR = "Failed to Delete Existing Nitro SDK";
     private static final String CREATE_FOLDER_ERROR = "Failed to Create Nitro SDK Folder";
     private static final String PARSE_ZIP_ERROR = "Failed to Parse ZIP File";
     private static final String OVERWRITE_QUESTION = "Nitro SDK has already been imported. Do you want to overwrite it?\n\nWARNING: The previous Nitro SDK import will be deleted.";
@@ -77,22 +78,31 @@ public class ImportTask extends Task {
      */
     public boolean setup() {
 
-        // Create/load Nitro SDK folder.
+        // Delete existing Nitro SDK folder.
         nitroSdkFolder = projectFolder.getFolder(NitroSdkProvider.IMPORTED_NITRO_SDK_FOLDER);
-        if (nitroSdkFolder == null) {
-            try {
-                nitroSdkFolder = projectFolder.createFolder(NitroSdkProvider.IMPORTED_NITRO_SDK_FOLDER);
-            } catch (InvalidNameException | IOException e) {
-                Msg.showError(this, null, CREATE_FOLDER_ERROR, e.getMessage());
-                return false;
-            }
-        } else {
+        if (nitroSdkFolder != null) {
+
             // If the Nitro SDK folder already exists in project, ask the user if they want
             // to overwrite it.
             if (OptionDialog.showYesNoDialog(null, "Overwrite Existing Nitro SDK",
                     OVERWRITE_QUESTION) != OptionDialog.YES_OPTION) {
                 return false;
             }
+
+            try {
+                recursiveDelete(nitroSdkFolder);
+            } catch (IOException e) {
+                Msg.showError(this, null, DELETE_FOLDER_EEROR, e.getMessage());
+                return false;
+            }
+        }
+
+        // Create new Nitro SDK folder.
+        try {
+            nitroSdkFolder = projectFolder.createFolder(NitroSdkProvider.IMPORTED_NITRO_SDK_FOLDER);
+        } catch (InvalidNameException | IOException e) {
+            Msg.showError(this, null, CREATE_FOLDER_ERROR, e.getMessage());
+            return false;
         }
 
         // Let the user select the Nitro SDK ZIP file.
@@ -272,6 +282,18 @@ public class ImportTask extends Task {
         }
 
         return count + folder.getFiles().length;
+    }
+
+    private void recursiveDelete(DomainFolder folder) throws IOException {
+        for (DomainFolder childFolder : folder.getFolders()) {
+            recursiveDelete(childFolder);
+        }
+
+        for (DomainFile childFile : folder.getFiles()) {
+            childFile.delete();
+        }
+
+        folder.delete();
     }
 
 }
