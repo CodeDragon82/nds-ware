@@ -78,7 +78,7 @@ public class LoadTask extends Task {
             // Skip loading library functions that were incorrectly analysed when the Nitro
             // SDK was imported.
             if (functionBytes.length <= 1) {
-                return;
+                continue;
             }
 
             LibraryNode newNode = new LibraryNode(functionName, functionBytes, program.getSymbolTable());
