@@ -2,6 +2,7 @@ package ndsware.misc;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -71,14 +72,24 @@ public class ExtraInfoDialog extends DialogComponentProvider {
         });
     }
 
+    public static boolean ask(Component parent, String title, String question, List<String> info_list,
+            String okButtonName) {
+        return ask(parent, title, question, String.join("\n", info_list), okButtonName);
+    }
+
     /**
      * Prompt the user with some information, including extra context info.
      */
     public static void show(Component parent, String title, String statement, String extra_info) {
         Swing.runNow(() -> {
             ExtraInfoDialog dialog = new ExtraInfoDialog(title, statement, extra_info);
+            dialog.addDismissButton();
 
             DockingWindowManager.showDialog(parent, dialog);
         });
+    }
+
+    public static void show(Component parent, String title, String statement, List<String> info_list) {
+        show(parent, title, statement, String.join("\n", info_list));
     }
 }
