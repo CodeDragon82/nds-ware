@@ -150,15 +150,14 @@ public class ImportTask extends Task {
                 File unixArchive = extractUnixArchive(nitroSdkZip, entry, monitor);
                 importUnixArchive(unixArchive, monitor);
                 unixArchive.delete();
-            } catch (IOException e) {
+                DomainFolder libraryFolder = nitroSdkFolder.getFolder(unixArchive.getName());
+                analyseLibrary(libraryFolder, monitor);
+            } catch (IOException | VersionException e) {
                 Msg.showError(this, null, "Failed to import " + entry.getName(), e.getMessage());
             }
 
             monitor.increment();
         }
-
-        monitor.initialize(countBinaries(nitroSdkFolder));
-        analyseLibraryBinaries(nitroSdkFolder, monitor);
     }
 
     /**
@@ -167,8 +166,6 @@ public class ImportTask extends Task {
      */
     private File extractUnixArchive(ZipFile zipFile, ZipEntry entry, TaskMonitor monitor)
             throws IOException {
-        monitor.setMessage("Extracting " + entry.getName());
-
         InputStream inputStream = zipFile.getInputStream(entry);
         if (inputStream == null) {
             throw new IOException("ZIP input stream is null!");
@@ -198,32 +195,22 @@ public class ImportTask extends Task {
         importTask.run(new ConsoleTaskMonitor());
     }
 
-    private void analyseLibraryBinaries(DomainFolder folder, TaskMonitor monitor) throws CancelledException {
-        for (DomainFolder childFolder : folder.getFolders()) {
-            analyseLibraryBinaries(childFolder, monitor);
-        }
+    private void analyseLibrary(DomainFolder folder, TaskMonitor monitor)
+            throws CancelledException, VersionException, IOException {
+        monitor.setMessage("Analysing " + folder.getName());
 
         for (DomainFile childFile : folder.getFiles()) {
             analyseLibraryBinary(childFile, monitor);
-            monitor.increment();
         }
     }
 
     /**
      * Disassembles instructions and updates the address sets for all functions in
      * the given library binary, then saves the changes.
-     * 
-     * Return false if anything fails.
      */
-    private boolean analyseLibraryBinary(DomainFile file, TaskMonitor monitor) {
-        monitor.setMessage("Analysing functions in " + file.getName());
-
-        Program libraryProgram;
-        try {
-            libraryProgram = (Program) file.getDomainObject(new Object(), false, false, monitor);
-        } catch (VersionException | CancelledException | IOException e) {
-            return false;
-        }
+    private void analyseLibraryBinary(DomainFile file, TaskMonitor monitor)
+            throws VersionException, CancelledException, IOException {
+        Program libraryProgram = (Program) file.getDomainObject(this, false, false, monitor);
 
         Listing libraryListing = libraryProgram.getListing();
         Disassembler disassembler = Disassembler.getDisassembler(libraryProgram, new ConsoleTaskMonitor(), null);
@@ -238,13 +225,8 @@ public class ImportTask extends Task {
         }
         libraryProgram.endTransaction(txId, true);
 
-        try {
-            libraryProgram.save("Saving " + file.getName(), new ConsoleTaskMonitor());
-        } catch (CancelledException | IOException e) {
-            return false;
-        }
-
-        return true;
+        libraryProgram.save("Saving " + file.getName(), new ConsoleTaskMonitor());
+        libraryProgram.release(this);
     }
 
     /**
@@ -273,15 +255,6 @@ public class ImportTask extends Task {
 
         // Update function address set.
         function.setBody(new AddressSet(startAddress, endAddress));
-    }
-
-    private int countBinaries(DomainFolder folder) {
-        int count = 0;
-        for (DomainFolder childFolder : folder.getFolders()) {
-            count += countBinaries(childFolder);
-        }
-
-        return count + folder.getFiles().length;
     }
 
     private void recursiveDelete(DomainFolder folder) throws IOException {
