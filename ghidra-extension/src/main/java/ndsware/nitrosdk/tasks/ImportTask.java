@@ -45,7 +45,7 @@ import ndsware.nitrosdk.NitroSdkProvider;
 public class ImportTask extends Task {
 
     private static final String TASK_NAME = "Import Nitro SDK";
-    private static final String DELETE_FOLDER_EEROR = "Failed to Delete Existing Nitro SDK";
+    private static final String DELETE_FOLDER_ERROR = "Failed to Delete Existing Nitro SDK";
     private static final String CREATE_FOLDER_ERROR = "Failed to Create Nitro SDK Folder";
     private static final String PARSE_ZIP_ERROR = "Failed to Parse ZIP File";
     private static final String OVERWRITE_QUESTION = "Nitro SDK has already been imported. Do you want to overwrite it?\n\nWARNING: The previous Nitro SDK import will be deleted.";
@@ -127,7 +127,7 @@ public class ImportTask extends Task {
             try {
                 recursiveDelete(nitroSdkFolder);
             } catch (IOException e) {
-                Msg.showError(this, null, DELETE_FOLDER_EEROR, e.getMessage());
+                Msg.showError(this, null, DELETE_FOLDER_ERROR, e.getMessage());
                 return false;
             }
         }
