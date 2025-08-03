@@ -47,6 +47,8 @@ public class ImportTask extends Task {
 
     private static final String TASK_NAME = "Import Nitro SDK";
 
+    private static final String SDK_LIBRARY_FILTER = "^NitroSDK.*\\/lib\\/.*\\/Release\\/\\w*(\\.thumb)?\\.a$";
+
     // Error messages.
     private static final String DELETE_FOLDER_ERROR = "Failed to Delete Existing Nitro SDK";
     private static final String CREATE_FOLDER_ERROR = "Failed to Create Nitro SDK Folder";
@@ -107,9 +109,7 @@ public class ImportTask extends Task {
         // Filter entries from ZIP file.
         nitroSdkZipEntries = Collections.list(nitroSdkZip.entries()).stream()
                 .filter(entry -> !entry.isDirectory())
-                .filter(entry -> entry.getName().startsWith("NitroSDK/lib"))
-                .filter(entry -> entry.getName().endsWith(".a"))
-                .filter(entry -> entry.getName().contains("Release"))
+                .filter(entry -> entry.getName().matches(SDK_LIBRARY_FILTER))
                 .collect(Collectors.toList());
 
         List<String> libraryList = nitroSdkZipEntries.stream()
