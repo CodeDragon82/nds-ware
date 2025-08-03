@@ -43,6 +43,10 @@ public class LoadTask extends Task {
     @Override
     public void run(TaskMonitor monitor) throws CancelledException {
         if (nitroSdkFolder != null) {
+
+            // Clear existing GTree nodes before loading the Nitro SDK.
+            libraryRoot.removeAll();
+
             monitor.initialize(countBinaries(nitroSdkFolder));
             loadLibrary(nitroSdkFolder, libraryRoot, monitor);
         }
