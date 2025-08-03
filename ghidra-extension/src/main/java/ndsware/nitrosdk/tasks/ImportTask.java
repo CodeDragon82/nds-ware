@@ -46,11 +46,18 @@ import ndsware.nitrosdk.NitroSdkProvider;
 public class ImportTask extends Task {
 
     private static final String TASK_NAME = "Import Nitro SDK";
+
+    // Error messages.
     private static final String DELETE_FOLDER_ERROR = "Failed to Delete Existing Nitro SDK";
     private static final String CREATE_FOLDER_ERROR = "Failed to Create Nitro SDK Folder";
     private static final String PARSE_ZIP_ERROR = "Failed to Parse ZIP File";
-    private static final String OVERWRITE_QUESTION = "Nitro SDK has already been imported. Do you want to overwrite it?\n\nWARNING: The previous Nitro SDK import will be deleted.";
-    private static final String IMPORT_QUESTION = "Do you want to import the following %d libraries from the Nitro SDK?";
+    private static final String ZIP_NULL_INPUT_ERROR = "ZIP input stream is null!";
+
+    // Dialog messages.
+    private static final String OVERWRITE_IMPORT_DIALOG_TITLE = "Overwrite Existing Nitro SDK";
+    private static final String OVERWRITE_IMPORT_DIALOG_MESSAGE = "Nitro SDK has already been imported. Do you want to overwrite it?\n\nWARNING: The previous Nitro SDK import will be deleted.";
+    private static final String IMPORT_START_DIALOG_TITLE = "Import Libraries";
+    private static final String IMPORT_START_DIALOG_MESSAGE = "Do you want to import the following %d libraries from the Nitro SDK?";
     private static final String IMPORT_COMPLETE_DIALOG_TITLE = "Nitro SDK Import Complete";
     private static final String IMPORT_COMPLETE_DIALOG_MESSAGE = "Successfully imported %d of the %d libraries from the Nitro SDK.";
 
@@ -85,7 +92,6 @@ public class ImportTask extends Task {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileFilter(ZIP_FILTER);
         if (fileChooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
-            Msg.showError(this, null, "Invalid File", "Cannot import Nitro SDK from a non-ZIP file.");
             return false;
         }
         File nitroSdkZipFile = fileChooser.getSelectedFile();
@@ -108,10 +114,10 @@ public class ImportTask extends Task {
 
         List<String> libraryList = nitroSdkZipEntries.stream()
                 .map(entry -> new File(entry.getName()).getName()).toList();
-        String importQuestion = String.format(IMPORT_QUESTION, nitroSdkZipEntries.size());
+        String importQuestion = String.format(IMPORT_START_DIALOG_MESSAGE, nitroSdkZipEntries.size());
 
         // Ask the user if they want to import the Nitro SDK libraries.
-        if (!ExtraInfoDialog.ask(null, "Import Libraries", importQuestion, libraryList, "Import")) {
+        if (!ExtraInfoDialog.ask(null, IMPORT_START_DIALOG_TITLE, importQuestion, libraryList, "Import")) {
             return false;
         }
 
@@ -120,8 +126,8 @@ public class ImportTask extends Task {
 
             // If the Nitro SDK folder already exists in project, ask the user if they want
             // to overwrite it.
-            if (OptionDialog.showYesNoDialog(null, "Overwrite Existing Nitro SDK",
-                    OVERWRITE_QUESTION) != OptionDialog.YES_OPTION) {
+            if (OptionDialog.showYesNoDialog(null, OVERWRITE_IMPORT_DIALOG_TITLE,
+                    OVERWRITE_IMPORT_DIALOG_MESSAGE) != OptionDialog.YES_OPTION) {
                 return false;
             }
 
@@ -185,7 +191,7 @@ public class ImportTask extends Task {
             throws IOException {
         InputStream inputStream = zipFile.getInputStream(entry);
         if (inputStream == null) {
-            throw new IOException("ZIP input stream is null!");
+            throw new IOException(ZIP_NULL_INPUT_ERROR);
         }
 
         String filename = Paths.get(entry.getName()).getFileName().toString();
