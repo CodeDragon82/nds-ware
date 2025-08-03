@@ -23,12 +23,17 @@ import ndsware.nitrosdk.LibraryNode;
  */
 public class LoadTask extends Task {
 
+    private static final String TASK_TITLE = "Load Nitro SDK";
+
+    private static final String LOAD_MESSAGE = "Loading %s";
+    private static final String LOAD_FAILED_ERROR = "Failed to load %s";
+
     private Program program;
     private DomainFolder nitroSdkFolder;
     private LibraryNode libraryRoot;
 
     public LoadTask(Program program, DomainFolder nitroSdkFolder, LibraryNode libraryRoot) {
-        super("Load Nitro SDK");
+        super(TASK_TITLE);
 
         this.program = program;
         this.nitroSdkFolder = nitroSdkFolder;
@@ -59,7 +64,7 @@ public class LoadTask extends Task {
                 loadLibrary(childFile, childNode, monitor);
                 monitor.increment();
             } catch (VersionException | CancelledException | MemoryAccessException | IOException e) {
-                Msg.showError(this, null, "Failed to load " + childFile.getName(), e.getMessage());
+                Msg.showError(this, null, String.format(LOAD_FAILED_ERROR, childFile.getName()), e.getMessage());
             }
         }
     }
@@ -67,7 +72,7 @@ public class LoadTask extends Task {
     private void loadLibrary(DomainFile file, LibraryNode node, TaskMonitor monitor)
             throws VersionException, CancelledException, IOException, MemoryAccessException {
 
-        monitor.setMessage("Loading " + file.getName());
+        monitor.setMessage(String.format(LOAD_MESSAGE, file.getName()));
 
         Program libraryProgram = (Program) file.getDomainObject(this, false, false, new ConsoleTaskMonitor());
         Memory libraryMemory = libraryProgram.getMemory();
