@@ -11,6 +11,7 @@ import ghidra.program.model.mem.MemoryAccessException;
 import ghidra.util.Msg;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.exception.VersionException;
+import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
 import ndsware.nitrosdk.LibraryNode;
@@ -37,6 +38,7 @@ public class LoadTask extends Task {
     @Override
     public void run(TaskMonitor monitor) throws CancelledException {
         if (nitroSdkFolder != null) {
+            monitor.initialize(countBinaries(nitroSdkFolder));
             loadLibrary(nitroSdkFolder, libraryRoot, monitor);
         }
     }
@@ -55,6 +57,7 @@ public class LoadTask extends Task {
 
             try {
                 loadLibrary(childFile, childNode, monitor);
+                monitor.increment();
             } catch (VersionException | CancelledException | MemoryAccessException | IOException e) {
                 Msg.showError(this, null, "Failed to load " + childFile.getName(), e.getMessage());
             }
@@ -66,7 +69,7 @@ public class LoadTask extends Task {
 
         monitor.setMessage("Loading " + file.getName());
 
-        Program libraryProgram = (Program) file.getDomainObject(this, false, false, monitor);
+        Program libraryProgram = (Program) file.getDomainObject(this, false, false, new ConsoleTaskMonitor());
         Memory libraryMemory = libraryProgram.getMemory();
 
         for (Function function : libraryProgram.getFunctionManager().getFunctions(true)) {
@@ -88,4 +91,13 @@ public class LoadTask extends Task {
         libraryProgram.release(this);
     }
 
+    private int countBinaries(DomainFolder folder) {
+        int count = folder.getFiles().length;
+
+        for (DomainFolder childFolder : folder.getFolders()) {
+            count += countBinaries(childFolder);
+        }
+
+        return count;
+    }
 }
