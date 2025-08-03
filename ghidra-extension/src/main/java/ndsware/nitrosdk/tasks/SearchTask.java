@@ -1,5 +1,8 @@
 package ndsware.nitrosdk.tasks;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import docking.widgets.tree.GTreeNode;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSpace;
@@ -12,6 +15,7 @@ import ghidra.util.exception.InvalidInputException;
 import ghidra.util.task.ConsoleTaskMonitor;
 import ghidra.util.task.Task;
 import ghidra.util.task.TaskMonitor;
+import ndsware.misc.ExtraInfoDialog;
 import ndsware.nitrosdk.LibraryNode;
 
 /**
@@ -50,13 +54,19 @@ public class SearchTask extends Task {
     public void run(TaskMonitor monitor) throws CancelledException {
         monitor.initialize(countFunctions(rootNode));
 
-        analyseLibrary(rootNode, monitor);
+        ArrayList<String> newFoundFunctions = new ArrayList<String>();
+        analyseLibrary(rootNode, newFoundFunctions, monitor);
+
+        ExtraInfoDialog.show(null, "Nitro SDK Search Complete",
+                "Found and labelled " + newFoundFunctions.size() + " new Nitro SDK functions in the ROM.",
+                newFoundFunctions);
     }
 
     /**
      * Find and label all functions from the given library within the binary.
      */
-    private void analyseLibrary(LibraryNode node, TaskMonitor monitor) throws CancelledException {
+    private void analyseLibrary(LibraryNode node, List<String> newFoundFunctions, TaskMonitor monitor)
+            throws CancelledException {
 
         // Stop searching if the user cancels the task.
         if (monitor.isCancelled()) {
@@ -64,39 +74,46 @@ public class SearchTask extends Task {
         }
 
         if (node.isLeaf()) {
-            findAndLabelFunction(node, monitor);
+            if (findAndLabelFunction(node, monitor)) {
+                newFoundFunctions.add(node.getFunctionName());
+            }
             monitor.increment();
         } else {
             for (GTreeNode childNode : node.getChildren()) {
-                analyseLibrary((LibraryNode) childNode, monitor);
+                analyseLibrary((LibraryNode) childNode, newFoundFunctions, monitor);
             }
         }
     }
 
-    private void findAndLabelFunction(LibraryNode library, TaskMonitor monitor) {
+    /**
+     * Returns true if the library function was found and labelled successfully, and
+     * hadn't been found previously.
+     */
+    private boolean findAndLabelFunction(LibraryNode library, TaskMonitor monitor) {
         monitor.setMessage("Searching for " + library.getFunctionName());
 
         if (isFound(library.getFunctionName())) {
-            return;
+            return false;
         }
 
         Address functionAddress = memory.findBytes(minAddress, maxAddress, library.getFunctionBytes(), null, true,
                 new ConsoleTaskMonitor());
 
         if (functionAddress == null) {
-            return;
+            return false;
         }
 
         int transactionID = program.startTransaction("Label " + library.getFunctionName());
         boolean success = false;
         try {
-            symbolTable.createLabel(functionAddress, library.getFunctionName(),
-                    SourceType.USER_DEFINED);
+            symbolTable.createLabel(functionAddress, library.getFunctionName(), SourceType.USER_DEFINED);
             success = true;
         } catch (InvalidInputException e) {
             monitor.setMessage("Failed to label " + library.getFunctionName() + ": " + e.getMessage());
         }
         program.endTransaction(transactionID, success);
+
+        return success;
     }
 
     private boolean isFound(String functionName) {
