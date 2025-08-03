@@ -24,6 +24,14 @@ import ndsware.nitrosdk.LibraryNode;
  */
 public class SearchTask extends Task {
 
+    private static final String TASK_TITLE = "Finding and Labelling Nitro SDK Functions";
+
+    private static final String SEARCH_COMPLETE_DIALOG_TITLE = "Nitro SDK Search Complete";
+    private static final String SEARCH_COMPLETE_DIALOG_MESSAGE = "Found and labelled %d new Nitro SDK functions in the ROM.";
+
+    private static final String SEARCH_MESSAGE = "Searching for %s";
+    private static final String LABEL_FAILED_ERROR = "Failed to label %s";
+
     // Address space to search in.
     private static final long MIN_OFFSET = 0x2000000;
     private static final long MAX_OFFSET = 0x2FFFFFF;
@@ -38,7 +46,7 @@ public class SearchTask extends Task {
     private final LibraryNode rootNode;
 
     public SearchTask(Program program, LibraryNode rootNode) {
-        super("Finding and Labelling Nitro SDK Functions", true, true, true);
+        super(TASK_TITLE, true, true, true);
         this.program = program;
         this.memory = program.getMemory();
         this.symbolTable = program.getSymbolTable();
@@ -57,8 +65,8 @@ public class SearchTask extends Task {
         ArrayList<String> newFoundFunctions = new ArrayList<String>();
         analyseLibrary(rootNode, newFoundFunctions, monitor);
 
-        ExtraInfoDialog.show(null, "Nitro SDK Search Complete",
-                "Found and labelled " + newFoundFunctions.size() + " new Nitro SDK functions in the ROM.",
+        ExtraInfoDialog.show(null, SEARCH_COMPLETE_DIALOG_TITLE,
+                String.format(SEARCH_COMPLETE_DIALOG_MESSAGE, newFoundFunctions.size()),
                 newFoundFunctions);
     }
 
@@ -74,7 +82,7 @@ public class SearchTask extends Task {
         }
 
         if (node.isLeaf()) {
-            if (findAndLabelFunction(node, monitor)) {
+            if (findAndLabelFunction(node.getFunctionName(), node.getFunctionBytes(), monitor)) {
                 newFoundFunctions.add(node.getFunctionName());
             }
             monitor.increment();
@@ -89,27 +97,27 @@ public class SearchTask extends Task {
      * Returns true if the library function was found and labelled successfully, and
      * hadn't been found previously.
      */
-    private boolean findAndLabelFunction(LibraryNode library, TaskMonitor monitor) {
-        monitor.setMessage("Searching for " + library.getFunctionName());
+    private boolean findAndLabelFunction(String functionName, byte[] functionSignature, TaskMonitor monitor) {
+        monitor.setMessage(String.format(SEARCH_MESSAGE, functionName));
 
-        if (isFound(library.getFunctionName())) {
+        if (isFound(functionName)) {
             return false;
         }
 
-        Address functionAddress = memory.findBytes(minAddress, maxAddress, library.getFunctionBytes(), null, true,
+        Address functionAddress = memory.findBytes(minAddress, maxAddress, functionSignature, null, true,
                 new ConsoleTaskMonitor());
 
         if (functionAddress == null) {
             return false;
         }
 
-        int transactionID = program.startTransaction("Label " + library.getFunctionName());
+        int transactionID = program.startTransaction("Label " + functionName);
         boolean success = false;
         try {
-            symbolTable.createLabel(functionAddress, library.getFunctionName(), SourceType.USER_DEFINED);
+            symbolTable.createLabel(functionAddress, functionName, SourceType.USER_DEFINED);
             success = true;
         } catch (InvalidInputException e) {
-            monitor.setMessage("Failed to label " + library.getFunctionName() + ": " + e.getMessage());
+            monitor.setMessage(String.format(LABEL_FAILED_ERROR, functionName));
         }
         program.endTransaction(transactionID, success);
 
