@@ -28,9 +28,11 @@ import ndsware.nitrosdk.tasks.SearchTask;
 
 public class NitroSdkProvider extends ComponentProvider {
 
-    private static String MENU_NAME = "NDS";
-    private static String MENU_OPTION = "Nitro SDK";
-    public static String IMPORTED_NITRO_SDK_FOLDER = "nitro-sdk";
+    private static final String TOOL_NAME = "Nitro SDK";
+    private static final String MENU_NAME = "NDS";
+    private static final String MENU_OPTION = "Nitro SDK";
+    public static final String IMPORTED_NITRO_SDK_FOLDER = "nitro-sdk";
+    private static final String HIDE_MISSING_FUNCTIONS_CHECKBOX = "Hide Missing Functions";
 
     private Project project;
     private DomainFolder projectFolder;
@@ -42,7 +44,7 @@ public class NitroSdkProvider extends ComponentProvider {
     private JPanel panel;
 
     public NitroSdkProvider(Plugin plugin, String owner) {
-        super(plugin.getTool(), "Nitro SDK", owner);
+        super(plugin.getTool(), TOOL_NAME, owner);
 
         project = plugin.getTool().getProject();
         projectFolder = project.getProjectData().getRootFolder();
@@ -54,7 +56,7 @@ public class NitroSdkProvider extends ComponentProvider {
     private void buildPanel() {
         panel = new JPanel(new BorderLayout());
 
-        JCheckBox hideMissingCheckBox = new JCheckBox("Hide Missing Functions");
+        JCheckBox hideMissingCheckBox = new JCheckBox(HIDE_MISSING_FUNCTIONS_CHECKBOX);
 
         treeRoot = new LibraryNode("");
         tree = new GTree(treeRoot);
@@ -74,7 +76,7 @@ public class NitroSdkProvider extends ComponentProvider {
         });
 
         JButton importButton = new JButton("Import");
-        importButton.addActionListener((e) -> {
+        importButton.addActionListener(e -> {
 
             ImportTask task = new ImportTask(projectFolder);
             task.addTaskListener(new TaskListener() {
@@ -95,7 +97,7 @@ public class NitroSdkProvider extends ComponentProvider {
         });
 
         JButton analyseButton = new JButton("Analyse");
-        analyseButton.addActionListener((e) -> {
+        analyseButton.addActionListener(e -> {
             Task task = new SearchTask(program, treeRoot);
             TaskLauncher.launch(task);
         });
