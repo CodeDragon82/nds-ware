@@ -8,9 +8,8 @@ Data: 04/05/2025
 import os
 
 import click
-from tabulate import tabulate
-
 from ndsware.parsers.nds import Nds
+from tabulate import tabulate
 
 CODE_FOLDER = "code"
 FILES_FOLDER = "files"
@@ -23,6 +22,53 @@ def cli() -> None:
     """
     Extracts data from key sections of the NDS ROM such as game code and files.
     """
+
+
+@cli.command()
+@click.argument("nds_file", type=str)
+def explore(nds_file: str) -> None:
+    nds = Nds.from_file(nds_file)
+    name_path: list[str] = []
+    directory_path: list[Nds.Directory] = [nds.file_name_table.directories[0]]
+
+    while True:
+        path_string = "/" + "/".join(name_path) + " > "
+        parts = input(path_string).split()
+        command = parts[0] if parts else ""
+        arguments = parts[1:] if len(parts) > 1 else []
+
+        match command:
+            case "ls":
+                for file in directory_path[-1].files[:-1]:
+                    symbol = "D" if file.is_directory else "_"
+                    print(symbol, "\t", file.name)
+            case "cd":
+                if len(arguments) > 0:
+                    change_directory(nds, name_path, directory_path, arguments[0])
+                else:
+                    print("ERROR: Must specify a directory to change to.")
+            case "exit":
+                break
+
+
+def change_directory(nds: Nds, name_path: list, directory_path: list, next_directory: str) -> None:
+    if next_directory == "..":
+        if len(name_path) > 0:
+            name_path.pop()
+            directory_path.pop()
+        else:
+            print("ERROR: Cannot traverse backwards from the root directory.")
+        return
+
+    for file in directory_path[-1].files[:-1]:
+        if file.name == next_directory and file.is_directory:
+            next_directory_index = file.directory_id & 0xFFF
+            next_directory = nds.file_name_table.directories[next_directory_index]
+            name_path.append(file.name)
+            directory_path.append(next_directory)
+            return
+
+    print(f"ERROR: '{next_directory}' is not a directory.")
 
 
 @cli.command(help="Display files/directory structure.")
