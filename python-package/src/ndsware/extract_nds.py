@@ -28,44 +28,46 @@ def cli() -> None:
 @click.argument("nds_file", type=str)
 def explore(nds_file: str) -> None:
     nds = Nds.from_file(nds_file)
-    name_path: list[str] = []
-    directory_path: list[Nds.Directory] = [nds.file_name_table.directories[0]]
+    path: dict[str, Nds.Directory] = {"": nds.file_name_table.directories[0]}
 
     while True:
-        path_string = "/" + "/".join(name_path) + " > "
+        path_string = "/".join(path.keys()) + " > "
         parts = input(path_string).split()
         command = parts[0] if parts else ""
         arguments = parts[1:] if len(parts) > 1 else []
 
-        match command:
-            case "ls":
-                for file in directory_path[-1].files[:-1]:
-                    symbol = "D" if file.is_directory else "_"
-                    print(symbol, "\t", file.name)
-            case "cd":
-                if len(arguments) > 0:
-                    change_directory(nds, name_path, directory_path, arguments[0])
-                else:
-                    print("ERROR: Must specify a directory to change to.")
-            case "exit":
-                break
+        process_explore_command(nds, path, command, arguments)
 
 
-def change_directory(nds: Nds, name_path: list, directory_path: list, next_directory: str) -> None:
+def process_explore_command(nds: Nds, path: dict[str, Nds.Directory], command: str, arguments: list[str]) -> None:
+    match command:
+        case "ls":
+            current_directory = next(reversed(path.values()))
+            for file in current_directory.files[:-1]:
+                symbol = "D" if file.is_directory else "_"
+                print(symbol, "\t", file.name)
+        case "cd":
+            if len(arguments) > 0:
+                change_directory(nds, path, arguments[0])
+            else:
+                print("ERROR: Must specify a directory to change to.")
+        case "exit":
+            raise SystemExit("Goodbye!")
+
+
+def change_directory(nds: Nds, path: dict[str, Nds.Directory], next_directory: str) -> None:
     if next_directory == "..":
-        if len(name_path) > 0:
-            name_path.pop()
-            directory_path.pop()
+        if len(path) > 1:
+            path.popitem()
         else:
             print("ERROR: Cannot traverse backwards from the root directory.")
         return
 
-    for file in directory_path[-1].files[:-1]:
+    current_directory = next(reversed(path.values()))
+    for file in current_directory.files[:-1]:
         if file.name == next_directory and file.is_directory:
             next_directory_index = file.directory_id & 0xFFF
-            next_directory = nds.file_name_table.directories[next_directory_index]
-            name_path.append(file.name)
-            directory_path.append(next_directory)
+            path[file.name] = nds.file_name_table.directories[next_directory_index]
             return
 
     print(f"ERROR: '{next_directory}' is not a directory.")
