@@ -17,6 +17,10 @@ FILES_FOLDER = "files"
 file_index = 0
 
 
+class ExploreException(Exception):
+    pass
+
+
 @click.group()
 def cli() -> None:
     """
@@ -36,7 +40,10 @@ def explore(nds_file: str) -> None:
         command = parts[0] if parts else ""
         arguments = parts[1:] if len(parts) > 1 else []
 
-        process_explore_command(nds, path, command, arguments)
+        try:
+            process_explore_command(nds, path, command, arguments)
+        except ExploreException as e:
+            print(f"ERROR: {e}")
 
 
 def process_explore_command(nds: Nds, path: dict[str, Nds.Directory], command: str, arguments: list[str]) -> None:
@@ -50,18 +57,20 @@ def process_explore_command(nds: Nds, path: dict[str, Nds.Directory], command: s
             if len(arguments) > 0:
                 change_directory(nds, path, arguments[0])
             else:
-                print("ERROR: Must specify a directory to change to.")
+                raise ExploreException("Must specify a directory to change to.")
         case "exit":
             raise SystemExit("Goodbye!")
+        case _:
+            raise ExploreException("Invalid command.")
 
 
 def change_directory(nds: Nds, path: dict[str, Nds.Directory], next_directory: str) -> None:
     if next_directory == "..":
         if len(path) > 1:
             path.popitem()
+            return
         else:
-            print("ERROR: Cannot traverse backwards from the root directory.")
-        return
+            raise ExploreException("Cannot traverse backwards from the root directory.")
 
     current_directory = next(reversed(path.values()))
     for file in current_directory.files[:-1]:
@@ -70,7 +79,7 @@ def change_directory(nds: Nds, path: dict[str, Nds.Directory], next_directory: s
             path[file.name] = nds.file_name_table.directories[next_directory_index]
             return
 
-    print(f"ERROR: '{next_directory}' is not a directory.")
+    raise ExploreException(f"'{next_directory}' is not a directory.")
 
 
 @cli.command(help="Display files/directory structure.")
