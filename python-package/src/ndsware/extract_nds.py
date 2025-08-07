@@ -110,8 +110,8 @@ def explore(nds_file: str) -> None:
     current_directory: FileNode = FileNode.load_file_system(nds)
 
     while True:
-        path_string = current_directory.get_path() + " > "
-        parts = input(path_string).split()
+        prompt = f"{nds.header.game_title}:{current_directory.get_path()} > "
+        parts = input(prompt).split()
         command = parts[0] if parts else ""
         arguments = parts[1:] if len(parts) > 1 else []
 
