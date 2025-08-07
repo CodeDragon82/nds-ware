@@ -5,7 +5,10 @@ Author: CodeDragon82
 Data: 04/05/2025
 """
 
+from __future__ import annotations
+
 import os
+from typing import Optional
 
 import click
 from ndsware.parsers.nds import Nds
@@ -21,6 +24,78 @@ class ExploreException(Exception):
     pass
 
 
+class FileNode:
+    def __init__(self, name: str, parent: Optional[FileNode]):
+        self.name: str = name
+        self.parent: Optional[FileNode] = parent
+        self.children: list[FileNode] = []
+        self.file: Optional[Nds.File] = None
+
+    def add(self, child: FileNode) -> None:
+        self.children.append(child)
+
+    def set_file(self, file: Nds.File) -> None:
+        self.file = file
+
+    def get_file_data(self) -> bytes:
+        if self.file is None:
+            raise ExploreException("File doesn't have data.")
+
+        return self.file.data
+
+    def get_folder(self, name: str) -> FileNode:
+        for child in self.children:
+            if child.is_directory() and child.name == name:
+                return child
+
+        raise ExploreException(f"'{name}' is not a directory.")
+
+    def get_path(self) -> str:
+        if self.parent is None:
+            return "/"
+
+        return self.parent.get_path() + self.name + "/"
+
+    def get_listing(self) -> str:
+        if self.is_directory():
+            return f"D\t{self.name}"
+
+        info: Nds.FatEntry = self.file.info
+        size = info.end_offset - info.start_offset
+        return f"_\t{self.name}\t{size} B"
+
+    def is_directory(self) -> bool:
+        return self.file is None
+
+    def load(self, nds: Nds, directory: Nds.Directory) -> None:
+        global file_index
+
+        file: Nds.FileEntry
+        for file in reversed(directory.files[:-1]):
+            child_node = FileNode(file.name, self)
+            self.add(child_node)
+
+            if file.is_directory:
+                next_directory_index = file.directory_id & 0xFFF
+                next_directory = nds.file_name_table.directories[next_directory_index]
+
+                child_node.load(nds, next_directory)
+            else:
+                child_node.set_file(nds.files[file_index])
+                file_index -= 1
+
+    @staticmethod
+    def load_file_system(nds: Nds) -> FileNode:
+        global file_index
+        file_index = len(nds.files) - 1
+
+        root_directory = nds.file_name_table.directories[0]
+        root_node = FileNode("/", None)
+        root_node.load(nds, root_directory)
+
+        return root_node
+
+
 @click.group()
 def cli() -> None:
     """
@@ -32,54 +107,46 @@ def cli() -> None:
 @click.argument("nds_file", type=str)
 def explore(nds_file: str) -> None:
     nds = Nds.from_file(nds_file)
-    path: dict[str, Nds.Directory] = {"": nds.file_name_table.directories[0]}
+    current_directory: FileNode = FileNode.load_file_system(nds)
 
     while True:
-        path_string = "/".join(path.keys()) + " > "
+        path_string = current_directory.get_path() + " > "
         parts = input(path_string).split()
         command = parts[0] if parts else ""
         arguments = parts[1:] if len(parts) > 1 else []
 
         try:
-            process_explore_command(nds, path, command, arguments)
+            current_directory = process_explore_command(command, arguments, current_directory)
         except ExploreException as e:
             print(f"ERROR: {e}")
 
 
-def process_explore_command(nds: Nds, path: dict[str, Nds.Directory], command: str, arguments: list[str]) -> None:
+def process_explore_command(command: str, arguments: list[str], current_directory: FileNode) -> FileNode:
     match command:
         case "ls":
-            current_directory = next(reversed(path.values()))
-            for file in current_directory.files[:-1]:
-                symbol = "D" if file.is_directory else "_"
-                print(symbol, "\t", file.name)
+            for file in current_directory.children:
+                print(file.get_listing())
         case "cd":
-            if len(arguments) > 0:
-                change_directory(nds, path, arguments[0])
-            else:
-                raise ExploreException("Must specify a directory to change to.")
+            current_directory = change_directory(arguments, current_directory)
         case "exit":
             raise SystemExit("Goodbye!")
         case _:
             raise ExploreException("Invalid command.")
 
+    return current_directory
 
-def change_directory(nds: Nds, path: dict[str, Nds.Directory], next_directory: str) -> None:
-    if next_directory == "..":
-        if len(path) > 1:
-            path.popitem()
-            return
-        else:
-            raise ExploreException("Cannot traverse backwards from the root directory.")
 
-    current_directory = next(reversed(path.values()))
-    for file in current_directory.files[:-1]:
-        if file.name == next_directory and file.is_directory:
-            next_directory_index = file.directory_id & 0xFFF
-            path[file.name] = nds.file_name_table.directories[next_directory_index]
-            return
+def change_directory(arguments: list[str], current_directory: FileNode) -> FileNode:
+    if len(arguments) > 0:
+        if arguments[0] == "..":
+            if current_directory.parent is None:
+                raise ExploreException("Cannot traverse backwards from the root directory.")
 
-    raise ExploreException(f"'{next_directory}' is not a directory.")
+            return current_directory.parent
+
+        return current_directory.get_folder(arguments[0])
+
+    raise ExploreException("Must specify a directory to change to.")
 
 
 @cli.command(help="Display files/directory structure.")
