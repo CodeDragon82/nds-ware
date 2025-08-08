@@ -64,6 +64,17 @@ class FileNode:
         size = info.end_offset - info.start_offset
         return f"_\t{self.name}\t{size} B"
 
+    def get_listings(self, recursive: bool = False, tab: int = 0) -> str:
+        listings = ""
+
+        if self.is_directory():
+            for child in self.children:
+                listings += "\t" * tab + child.get_listing() + "\n"
+                if recursive:
+                    listings += child.get_listings(recursive, tab + 1)
+
+        return listings
+
     def is_directory(self) -> bool:
         return self.file is None
 
@@ -124,8 +135,9 @@ def explore(nds_file: str) -> None:
 def process_explore_command(command: str, arguments: list[str], current_directory: FileNode) -> FileNode:
     match command:
         case "ls":
-            for file in current_directory.children:
-                print(file.get_listing())
+            print(current_directory.get_listings())
+        case "lsr":
+            print(current_directory.get_listings(recursive=True))
         case "cd":
             current_directory = change_directory(arguments, current_directory)
         case "exit":
