@@ -113,7 +113,7 @@ class FileNode:
         file_index = len(nds.files) - 1
 
         root_directory = nds.file_name_table.directories[0]
-        root_node = FileNode("/", None)
+        root_node = FileNode("", None)
         root_node.load(nds, root_directory)
 
         return root_node
@@ -179,51 +179,9 @@ def files(nds_file: str) -> None:
     """Displays the file/directory structure of the NDS ROM."""
 
     nds = Nds.from_file(nds_file)
+    root = FileNode.load_file_system(nds)
 
-    extract_files(nds, None)
-
-
-def extract_directory(nds: Nds, directory: Nds.Directory, indent: int, output_dir: str | None) -> None:
-    """
-    Loops through each entry in a FNT directory.
-
-    If the entry is a file, file data pointed to by the FAT is extracted and written to the new file. The
-    name of the new file defined in the entry. Then the `file_index` is then incremented.
-
-    If the entry is a directory, a new directory with the name specified in the entry is created and the
-    `extract_directory` is called again of the new directory.
-    """
-    global file_index
-
-    for file in reversed(directory.files[:-1]):
-        if output_dir is None:
-            print("\t" * indent + file.name)
-
-        if file.is_directory:
-            if output_dir:
-                output_dir = os.path.join(output_dir, file.name)
-                os.makedirs(output_dir, exist_ok=True)
-
-            next_directory_index = file.directory_id & 0xFFF
-            next_directory = nds.file_name_table.directories[next_directory_index]
-            extract_directory(nds, next_directory, indent + 1, output_dir)
-        else:
-            if output_dir:
-                file_path = os.path.join(output_dir, file.name)
-                file_data = nds.files[file_index].data
-                open(file_path, "wb").write(file_data)
-
-            file_index -= 1
-
-
-def extract_files(nds: Nds, output_dir: str | None) -> None:
-    """Fetches the root directory entry in the FNT and calls `extract_directory` on it."""
-
-    global file_index
-    file_index = len(nds.files) - 1
-
-    root = nds.file_name_table.directories[0]
-    extract_directory(nds, root, 0, output_dir)
+    print(root.get_listings(recursive=True))
 
 
 def extract_code(nds: Nds, output_dir: str) -> None:
@@ -266,6 +224,7 @@ def extract(nds_file: str, output_dir: str) -> None:
     """Extracts extracts file and code sections from the NDS ROM and writes the data to files in the `output_dir`."""
 
     nds = Nds.from_file(nds_file)
+    root = FileNode.load_file_system(nds)
 
     code_dir = os.path.join(output_dir, CODE_FOLDER)
     files_dir = os.path.join(output_dir, FILES_FOLDER)
@@ -273,7 +232,7 @@ def extract(nds_file: str, output_dir: str) -> None:
     os.makedirs(code_dir, exist_ok=True)
     os.makedirs(files_dir, exist_ok=True)
 
-    extract_files(nds, files_dir)
+    root.extract(files_dir)
     extract_code(nds, code_dir)
 
 
