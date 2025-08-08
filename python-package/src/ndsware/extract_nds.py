@@ -75,6 +75,18 @@ class FileNode:
 
         return listings
 
+    def extract(self, output_path: str) -> None:
+        output_path = os.path.join(output_path, self.name)
+        print(output_path)
+
+        if self.is_directory():
+            os.makedirs(output_path, exist_ok=True)
+
+            for child in self.children:
+                child.extract(output_path)
+        else:
+            open(output_path, "wb").write(self.get_file_data())
+
     def is_directory(self) -> bool:
         return self.file is None
 
