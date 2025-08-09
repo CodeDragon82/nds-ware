@@ -17,14 +17,14 @@ from tabulate import tabulate
 CODE_FOLDER = "code"
 FILES_FOLDER = "files"
 
-file_index = 0
-
 
 class ExploreException(Exception):
     pass
 
 
 class FileNode:
+    file_index = 0
+
     def __init__(self, name: str, parent: Optional[FileNode]):
         self.name: str = name
         self.parent: Optional[FileNode] = parent
@@ -91,8 +91,6 @@ class FileNode:
         return self.file is None
 
     def load(self, nds: Nds, directory: Nds.Directory) -> None:
-        global file_index
-
         file: Nds.FileEntry
         for file in reversed(directory.files[:-1]):
             child_node = FileNode(file.name, self)
@@ -104,13 +102,12 @@ class FileNode:
 
                 child_node.load(nds, next_directory)
             else:
-                child_node.set_file(nds.files[file_index])
-                file_index -= 1
+                child_node.set_file(nds.files[FileNode.file_index])
+                FileNode.file_index -= 1
 
     @staticmethod
     def load_file_system(nds: Nds) -> FileNode:
-        global file_index
-        file_index = len(nds.files) - 1
+        FileNode.file_index = len(nds.files) - 1
 
         root_directory = nds.file_name_table.directories[0]
         root_node = FileNode("", None)
