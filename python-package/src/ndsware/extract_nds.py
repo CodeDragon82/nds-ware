@@ -43,6 +43,13 @@ class FileNode:
 
         return self.file.data
 
+    def get_child(self, name: str) -> FileNode:
+        for child in self.children:
+            if child.name == name:
+                return child
+
+        raise ExploreException(f"`{name}` not found.")
+
     def get_folder(self, name: str) -> FileNode:
         for child in self.children:
             if child.is_directory() and child.name == name:
@@ -149,6 +156,8 @@ def process_explore_command(command: str, arguments: list[str], current_director
             print(current_directory.get_listings(recursive=True))
         case "cd":
             current_directory = change_directory(arguments, current_directory)
+        case "extract":
+            explore_command_extract(arguments, current_directory)
         case "exit":
             raise SystemExit("Goodbye!")
         case _:
@@ -168,6 +177,23 @@ def change_directory(arguments: list[str], current_directory: FileNode) -> FileN
         return current_directory.get_folder(arguments[0])
 
     raise ExploreException("Must specify a directory to change to.")
+
+
+def explore_command_extract(arguments: list[str], current_directory: FileNode) -> None:
+    if len(arguments) == 0:
+        raise ExploreException("Must specify an file or folder to extract.")
+
+    if len(arguments) == 1:
+        raise ExploreException("Must specify an output directory.")
+
+    target_name = arguments[0]
+    output_path = arguments[1]
+
+    target = current_directory
+    if target_name != ".":
+        target = target.get_child(target_name)
+
+    target.extract(output_path)
 
 
 @cli.command(help="Display files/directory structure.")
