@@ -43,17 +43,42 @@ class FileNode:
 
         return self.file.data
 
-    def get_child(self, name: str) -> FileNode:
-        for child in self.children:
-            if child.name == name:
-                return child
+    def get(self, path: str) -> FileNode:
+        if path == "":
+            return self
 
-        raise ExploreException(f"`{name}` not found.")
+        if path[0] == "/":
+            return self.get_root().get(path[1:])
+
+        next_filename, *rest = path.split("/")
+        path_end = "/".join(rest)
+
+        if next_filename == ".":
+            return self.get(path_end)
+
+        if next_filename == "..":
+            if self.parent is None:
+                raise ExploreException("Cannot traverse backwards from the root directory.")
+
+            return self.parent.get(path_end)
+
+        for child in self.children:
+            if child.name == next_filename:
+                return child.get(path_end)
+
+        raise ExploreException(f"`{next_filename}` not found.")
+
+    def get_root(self) -> FileNode:
+        if self.parent is None:
+            return self
+
+        return self.parent
 
     def get_folder(self, name: str) -> FileNode:
-        for child in self.children:
-            if child.is_directory() and child.name == name:
-                return child
+        target = self.get(name)
+
+        if target.is_directory():
+            return target
 
         raise ExploreException(f"'{name}' is not a directory.")
 
@@ -168,12 +193,6 @@ def process_explore_command(command: str, arguments: list[str], current_director
 
 def change_directory(arguments: list[str], current_directory: FileNode) -> FileNode:
     if len(arguments) > 0:
-        if arguments[0] == "..":
-            if current_directory.parent is None:
-                raise ExploreException("Cannot traverse backwards from the root directory.")
-
-            return current_directory.parent
-
         return current_directory.get_folder(arguments[0])
 
     raise ExploreException("Must specify a directory to change to.")
@@ -186,12 +205,10 @@ def explore_command_extract(arguments: list[str], current_directory: FileNode) -
     if len(arguments) == 1:
         raise ExploreException("Must specify an output directory.")
 
-    target_name = arguments[0]
+    target_path = arguments[0]
     output_path = arguments[1]
 
-    target = current_directory
-    if target_name != ".":
-        target = target.get_child(target_name)
+    target = current_directory.get(target_path)
 
     target.extract(output_path)
 
