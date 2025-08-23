@@ -194,6 +194,8 @@ def cli() -> None:
 @cli.command()
 @click.argument("nds_file", type=str)
 def explore(nds_file: str) -> None:
+    """Open interactive shell to traverse the NDS file structure."""
+
     nds = Nds.from_file(nds_file)
     current_directory: FileNode = FileNode.load_file_system(nds)
 
@@ -210,6 +212,8 @@ def explore(nds_file: str) -> None:
 
 
 def process_explore_command(command: str, arguments: list[str], current_directory: FileNode) -> FileNode:
+    """Process commands entered into the interactive shell by the user."""
+
     match command:
         case "ls":
             print(current_directory.get_listings())
@@ -228,6 +232,8 @@ def process_explore_command(command: str, arguments: list[str], current_director
 
 
 def change_directory(arguments: list[str], current_directory: FileNode) -> FileNode:
+    """Handle the 'cd' command in the interactive shell."""
+
     if len(arguments) > 0:
         return current_directory.get_folder(arguments[0])
 
@@ -235,6 +241,8 @@ def change_directory(arguments: list[str], current_directory: FileNode) -> FileN
 
 
 def explore_command_extract(arguments: list[str], current_directory: FileNode) -> None:
+    """Handle the 'extract' command in the interactive shell."""
+
     if len(arguments) == 0:
         raise ExploreException("Must specify an file or folder to extract.")
 
