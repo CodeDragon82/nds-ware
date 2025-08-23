@@ -2,7 +2,7 @@
 A tool for extracting file and code sections from NDS ROM.
 
 Author: CodeDragon82
-Data: 04/05/2025
+Date: 04/05/2025
 """
 
 from __future__ import annotations
