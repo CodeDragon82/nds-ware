@@ -223,6 +223,8 @@ def process_explore_command(command: str, arguments: list[str], current_director
             current_directory = change_directory(arguments, current_directory)
         case "extract":
             explore_command_extract(arguments, current_directory)
+        case "help":
+            explore_command_help()
         case "exit":
             raise SystemExit("Goodbye!")
         case _:
@@ -255,6 +257,19 @@ def explore_command_extract(arguments: list[str], current_directory: FileNode) -
     target = current_directory.get(target_path)
 
     target.extract(output_path)
+
+
+def explore_command_help() -> None:
+    """List commands for the interactive shell."""
+
+    print(
+        """
+cd          Change directory.
+ls          List files and folders in the current directory.
+lsr         List files and folders in the current directory recursively.
+extract     Extract files/folders in the given directory.
+"""
+    )
 
 
 @cli.command(help="Display files/directory structure.")
