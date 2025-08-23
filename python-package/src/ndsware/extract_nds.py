@@ -23,6 +23,8 @@ class ExploreException(Exception):
 
 
 class FileNode:
+    """Stores information about a file or folder loaded from the NDS file system."""
+
     file_index = 0
 
     def __init__(self, name: str, parent: Optional[FileNode]):
@@ -32,18 +34,26 @@ class FileNode:
         self.file: Optional[Nds.File] = None
 
     def add(self, child: FileNode) -> None:
+        """Add a new `FileNode` as a child of the current folder."""
+
         self.children.append(child)
 
     def set_file(self, file: Nds.File) -> None:
+        """Set the `File` data object for the `FileNode`."""
+
         self.file = file
 
     def get_file_data(self) -> bytes:
+        """Returns the file's byte data."""
+
         if self.file is None:
             raise ExploreException("File doesn't have data.")
 
         return self.file.data
 
     def get(self, path: str) -> FileNode:
+        """Get another `FileNode` in the file system given the path."""
+
         if path == "":
             return self
 
@@ -69,12 +79,16 @@ class FileNode:
         raise ExploreException(f"`{next_filename}` not found.")
 
     def get_root(self) -> FileNode:
+        """Get the root `FileNode` of the file system."""
+
         if self.parent is None:
             return self
 
         return self.parent
 
     def get_folder(self, name: str) -> FileNode:
+        """Get the `FileNode` of the given path and check that it's a folder."""
+
         target = self.get(name)
 
         if target.is_directory():
@@ -83,12 +97,21 @@ class FileNode:
         raise ExploreException(f"'{name}' is not a directory.")
 
     def get_path(self) -> str:
+        """Generate a string of the current file/folder's path in the file system."""
+
         if self.parent is None:
             return "/"
 
         return self.parent.get_path() + self.name + "/"
 
     def get_listing(self) -> str:
+        """
+        Returns a formatted string with the file’s details:
+        - Whether it is a directory
+        - Filename
+        - File size
+        """
+
         if self.is_directory():
             return f"D\t{self.name}"
 
@@ -97,6 +120,11 @@ class FileNode:
         return f"_\t{self.name}\t{size} B"
 
     def get_listings(self, recursive: bool = False, tab: int = 0) -> str:
+        """
+        Returns a formatted string of file and folder details from the given
+        directory. Listings can also be fetched recursively.
+        """
+
         listings = ""
 
         if self.is_directory():
@@ -108,6 +136,8 @@ class FileNode:
         return listings
 
     def extract(self, output_path: str) -> None:
+        """Extract file data or directory recursively to `output_path`."""
+
         output_path = os.path.join(output_path, self.name)
         print(output_path)
 
@@ -120,9 +150,13 @@ class FileNode:
             open(output_path, "wb").write(self.get_file_data())
 
     def is_directory(self) -> bool:
+        """Returns true if the `FileNode` represents a folder."""
+
         return self.file is None
 
     def load(self, nds: Nds, directory: Nds.Directory) -> None:
+        """Recursively generate the `FileNode`s for the given `directory`."""
+
         file: Nds.FileEntry
         for file in reversed(directory.files[:-1]):
             child_node = FileNode(file.name, self)
@@ -139,6 +173,8 @@ class FileNode:
 
     @staticmethod
     def load_file_system(nds: Nds) -> FileNode:
+        """Load the file system into a tree of `FileNode`s."""
+
         FileNode.file_index = len(nds.files) - 1
 
         root_directory = nds.file_name_table.directories[0]
