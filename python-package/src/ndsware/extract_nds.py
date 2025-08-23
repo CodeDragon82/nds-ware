@@ -2,20 +2,186 @@
 A tool for extracting file and code sections from NDS ROM.
 
 Author: CodeDragon82
-Data: 04/05/2025
+Date: 04/05/2025
 """
 
+from __future__ import annotations
+
 import os
+from typing import Optional
 
 import click
-from tabulate import tabulate
-
 from ndsware.parsers.nds import Nds
+from tabulate import tabulate
 
 CODE_FOLDER = "code"
 FILES_FOLDER = "files"
 
-file_index = 0
+
+class ExploreException(Exception):
+    pass
+
+
+class FileNode:
+    """Stores information about a file or folder loaded from the NDS file system."""
+
+    file_index = 0
+
+    def __init__(self, name: str, parent: Optional[FileNode]):
+        self.name: str = name
+        self.parent: Optional[FileNode] = parent
+        self.children: list[FileNode] = []
+        self.file: Optional[Nds.File] = None
+
+    def add(self, child: FileNode) -> None:
+        """Add a new `FileNode` as a child of the current folder."""
+
+        self.children.append(child)
+
+    def set_file(self, file: Nds.File) -> None:
+        """Set the `File` data object for the `FileNode`."""
+
+        self.file = file
+
+    def get_file_data(self) -> bytes:
+        """Returns the file's byte data."""
+
+        if self.file is None:
+            raise ExploreException("File doesn't have data.")
+
+        return self.file.data
+
+    def get(self, path: str) -> FileNode:
+        """Get another `FileNode` in the file system given the path."""
+
+        if path == "":
+            return self
+
+        if path[0] == "/":
+            return self.get_root().get(path[1:])
+
+        next_filename, *rest = path.split("/")
+        path_end = "/".join(rest)
+
+        if next_filename == ".":
+            return self.get(path_end)
+
+        if next_filename == "..":
+            if self.parent is None:
+                raise ExploreException("Cannot traverse backwards from the root directory.")
+
+            return self.parent.get(path_end)
+
+        for child in self.children:
+            if child.name == next_filename:
+                return child.get(path_end)
+
+        raise ExploreException(f"`{next_filename}` not found.")
+
+    def get_root(self) -> FileNode:
+        """Get the root `FileNode` of the file system."""
+
+        if self.parent is None:
+            return self
+
+        return self.parent
+
+    def get_folder(self, name: str) -> FileNode:
+        """Get the `FileNode` of the given path and check that it's a folder."""
+
+        target = self.get(name)
+
+        if target.is_directory():
+            return target
+
+        raise ExploreException(f"'{name}' is not a directory.")
+
+    def get_path(self) -> str:
+        """Generate a string of the current file/folder's path in the file system."""
+
+        if self.parent is None:
+            return "/"
+
+        return self.parent.get_path() + self.name + "/"
+
+    def get_listing(self) -> str:
+        """
+        Returns a formatted string with the file’s details:
+        - Whether it is a directory
+        - Filename
+        - File size
+        """
+
+        if self.is_directory():
+            return f"D\t{self.name}"
+
+        info: Nds.FatEntry = self.file.info
+        size = info.end_offset - info.start_offset
+        return f"_\t{self.name}\t{size} B"
+
+    def get_listings(self, recursive: bool = False, tab: int = 0) -> str:
+        """
+        Returns a formatted string of file and folder details from the given
+        directory. Listings can also be fetched recursively.
+        """
+
+        listings = ""
+
+        if self.is_directory():
+            for child in self.children:
+                listings += "\t" * tab + child.get_listing() + "\n"
+                if recursive:
+                    listings += child.get_listings(recursive, tab + 1)
+
+        return listings
+
+    def extract(self, output_path: str) -> None:
+        """Extract file data or directory recursively to `output_path`."""
+
+        output_path = os.path.join(output_path, self.name)
+        print(output_path)
+
+        if self.is_directory():
+            os.makedirs(output_path, exist_ok=True)
+
+            for child in self.children:
+                child.extract(output_path)
+        else:
+            open(output_path, "wb").write(self.get_file_data())
+
+    def is_directory(self) -> bool:
+        """Returns true if the `FileNode` represents a folder."""
+
+        return self.file is None
+
+    def load(self, nds: Nds, directory: Nds.Directory) -> None:
+        """Recursively generate the `FileNode`s for the given `directory`."""
+
+        file: Nds.FileEntry
+        for file in reversed(directory.files[:-1]):
+            child_node = FileNode(file.name, self)
+            self.add(child_node)
+
+            if file.is_directory:
+                next_directory_index = file.directory_id & 0xFFF
+                next_directory = nds.file_name_table.directories[next_directory_index]
+
+                child_node.load(nds, next_directory)
+            else:
+                child_node.set_file(nds.files[FileNode.file_index])
+                FileNode.file_index -= 1
+
+    @staticmethod
+    def load_file_system(nds: Nds) -> FileNode:
+        """Load the file system into a tree of `FileNode`s."""
+
+        FileNode.file_index = len(nds.files) - 1
+
+        root_directory = nds.file_name_table.directories[0]
+        root_node = FileNode("", None)
+        root_node.load(nds, root_directory)
+
+        return root_node
 
 
 @click.group()
@@ -25,57 +191,96 @@ def cli() -> None:
     """
 
 
+@cli.command()
+@click.argument("nds_file", type=str)
+def explore(nds_file: str) -> None:
+    """Open interactive shell to traverse the NDS file structure."""
+
+    nds = Nds.from_file(nds_file)
+    current_directory: FileNode = FileNode.load_file_system(nds)
+
+    while True:
+        prompt = f"{nds.header.game_title}:{current_directory.get_path()} > "
+        parts = input(prompt).split()
+        command = parts[0] if parts else ""
+        arguments = parts[1:] if len(parts) > 1 else []
+
+        try:
+            current_directory = process_explore_command(command, arguments, current_directory)
+        except ExploreException as e:
+            print(f"ERROR: {e}")
+
+
+def process_explore_command(command: str, arguments: list[str], current_directory: FileNode) -> FileNode:
+    """Process commands entered into the interactive shell by the user."""
+
+    match command:
+        case "ls":
+            print(current_directory.get_listings())
+        case "lsr":
+            print(current_directory.get_listings(recursive=True))
+        case "cd":
+            current_directory = change_directory(arguments, current_directory)
+        case "extract":
+            explore_command_extract(arguments, current_directory)
+        case "help":
+            explore_command_help()
+        case "exit":
+            raise SystemExit("Goodbye!")
+        case _:
+            raise ExploreException("Invalid command.")
+
+    return current_directory
+
+
+def change_directory(arguments: list[str], current_directory: FileNode) -> FileNode:
+    """Handle the 'cd' command in the interactive shell."""
+
+    if len(arguments) > 0:
+        return current_directory.get_folder(arguments[0])
+
+    raise ExploreException("Must specify a directory to change to.")
+
+
+def explore_command_extract(arguments: list[str], current_directory: FileNode) -> None:
+    """Handle the 'extract' command in the interactive shell."""
+
+    if len(arguments) == 0:
+        raise ExploreException("Must specify an file or folder to extract.")
+
+    if len(arguments) == 1:
+        raise ExploreException("Must specify an output directory.")
+
+    target_path = arguments[0]
+    output_path = arguments[1]
+
+    target = current_directory.get(target_path)
+
+    target.extract(output_path)
+
+
+def explore_command_help() -> None:
+    """List commands for the interactive shell."""
+
+    print(
+        """
+cd          Change directory.
+ls          List files and folders in the current directory.
+lsr         List files and folders in the current directory recursively.
+extract     Extract files/folders in the given directory.
+"""
+    )
+
+
 @cli.command(help="Display files/directory structure.")
 @click.argument("nds_file", type=str)
 def files(nds_file: str) -> None:
     """Displays the file/directory structure of the NDS ROM."""
 
     nds = Nds.from_file(nds_file)
+    root = FileNode.load_file_system(nds)
 
-    extract_files(nds, None)
-
-
-def extract_directory(nds: Nds, directory: Nds.Directory, indent: int, output_dir: str | None) -> None:
-    """
-    Loops through each entry in a FNT directory.
-
-    If the entry is a file, file data pointed to by the FAT is extracted and written to the new file. The
-    name of the new file defined in the entry. Then the `file_index` is then incremented.
-
-    If the entry is a directory, a new directory with the name specified in the entry is created and the
-    `extract_directory` is called again of the new directory.
-    """
-    global file_index
-
-    for file in reversed(directory.files[:-1]):
-        if output_dir is None:
-            print("\t" * indent + file.name)
-
-        if file.is_directory:
-            if output_dir:
-                output_dir = os.path.join(output_dir, file.name)
-                os.makedirs(output_dir, exist_ok=True)
-
-            next_directory_index = file.directory_id & 0xFFF
-            next_directory = nds.file_name_table.directories[next_directory_index]
-            extract_directory(nds, next_directory, indent + 1, output_dir)
-        else:
-            if output_dir:
-                file_path = os.path.join(output_dir, file.name)
-                file_data = nds.files[file_index].data
-                open(file_path, "wb").write(file_data)
-
-            file_index -= 1
-
-
-def extract_files(nds: Nds, output_dir: str | None) -> None:
-    """Fetches the root directory entry in the FNT and calls `extract_directory` on it."""
-
-    global file_index
-    file_index = len(nds.files) - 1
-
-    root = nds.file_name_table.directories[0]
-    extract_directory(nds, root, 0, output_dir)
+    print(root.get_listings(recursive=True))
 
 
 def extract_code(nds: Nds, output_dir: str) -> None:
@@ -118,6 +323,7 @@ def extract(nds_file: str, output_dir: str) -> None:
     """Extracts extracts file and code sections from the NDS ROM and writes the data to files in the `output_dir`."""
 
     nds = Nds.from_file(nds_file)
+    root = FileNode.load_file_system(nds)
 
     code_dir = os.path.join(output_dir, CODE_FOLDER)
     files_dir = os.path.join(output_dir, FILES_FOLDER)
@@ -125,7 +331,7 @@ def extract(nds_file: str, output_dir: str) -> None:
     os.makedirs(code_dir, exist_ok=True)
     os.makedirs(files_dir, exist_ok=True)
 
-    extract_files(nds, files_dir)
+    root.extract(files_dir)
     extract_code(nds, code_dir)
 
 
